@@ -1,0 +1,44 @@
+camera:
+  source: 0                    # 0 = webcam, or path to video file
+  fps_limit: 30
+  resolution: [1280, 720]
+
+detection:
+  model_path: models/yolov8n.pt
+  confidence_threshold: 0.6
+  iou_threshold: 0.45
+  device: cuda                
+
+pose:
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+
+fall_detection:
+  velocity_threshold: 0.15
+  hip_knee_angle_threshold: 60
+
+tracker:
+  max_age: 30
+  min_hits: 3
+
+zones:
+  - id: zone_a
+    name: "Heavy Machinery Area"
+    required_ppe: [helmet, vest, gloves, goggles]
+  - id: zone_b
+    name: "General Floor"
+    required_ppe: [helmet, vest]
+
+alerts:
+  language: en                
+  critical_violations:
+    - fall
+    - no_helmet_machinery_zone
+
+reporting:
+  output_dir: reports/
+  company_name: "Your Company Name"
+
+database:
+  pool_size: 5
+  echo: false                  # true = print all SQL queries (useful for learning)

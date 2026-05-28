@@ -1,0 +1,40 @@
+# Computer Vision
+ultralytics
+mediapipe
+opencv-python
+supervision
+lapx
+
+# Backend
+fastapi
+uvicorn[standard]
+
+# Database
+sqlalchemy
+alembic
+psycopg2-binary
+
+# GenAI
+google-generativeai
+langchain
+langchain-google-genai
+langchain-community
+
+# Dashboard
+streamlit
+plotly
+pandas
+
+# PDF
+fpdf2
+
+# Translation
+deep-translator
+
+# Config & Env
+python-dotenv
+pyyaml
+pydantic
+
+# Utils
+loguru
