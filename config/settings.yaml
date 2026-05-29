@@ -16,8 +16,6 @@ detection:
   iou_threshold: 0.5
   device: cuda     
 
-     
-
 pose:
   min_detection_confidence: 0.5
   min_tracking_confidence: 0.5
@@ -45,10 +43,12 @@ zones:
     required_ppe: [helmet, vest]
 
 alerts:
-  language: en                
+  language: en                 # en, hi, ta, te, bn
+  cooldown_sec: 10
   critical_violations:
     - fall
-    - no_helmet_machinery_zone
+    - Fall-Detected
+    - NO-Hardhat
 
 reporting:
   output_dir: reports/
