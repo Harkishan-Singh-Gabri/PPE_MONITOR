@@ -1,6 +1,5 @@
 # Computer Vision
 ultralytics
-mediapipe
 opencv-python
 supervision
 lapx
