@@ -1,5 +1,5 @@
 camera:
-  source: test_videos\sample.mp4                   
+  source: test_videos\mult_sample.mp4                  
   fps_limit: 30
   resolution: [1280, 720]
 
@@ -12,8 +12,8 @@ detection:
     critical: ['Fall-Detected']
     environment: ['Safety Cone', 'Ladder']
     person: ['Person'] 
-  confidence_threshold: 0.6
-  iou_threshold: 0.45
+  confidence_threshold: 0.45
+  iou_threshold: 0.5
   device: cuda     
 
      
@@ -34,6 +34,7 @@ fall_detection:
 tracker:
   max_age: 30
   min_hits: 3
+  minimum_matching_threshold: 0.5
 
 zones:
   - id: zone_a
