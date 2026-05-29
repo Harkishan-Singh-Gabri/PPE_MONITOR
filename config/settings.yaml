@@ -22,8 +22,13 @@ pose:
   min_detection_confidence: 0.5
   min_tracking_confidence: 0.5
 
+posture:
+  neck_angle_threshold: 20
+  back_angle_threshold: 30
+  knee_angle_threshold: 160
+
 fall_detection:
-  velocity_threshold: 0.15
+  velocity_threshold: 0.35
   hip_knee_angle_threshold: 60
 
 tracker:
