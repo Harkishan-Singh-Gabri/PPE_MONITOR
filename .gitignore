@@ -2,6 +2,8 @@
 __pycache__/
 *.pyc
 *.pyo
+dataset/
+models/ppe_training/
 models/*.pt
 reports/
 logs/
@@ -9,3 +11,5 @@ logs/
 *.egg-info/
 .pytest_cache/
 .DS_Store
+runs/
+test_videos/

@@ -1,13 +1,22 @@
 camera:
-  source: 0                    # 0 = webcam, or path to video file
+  source: test_videos\sample.mp4                   
   fps_limit: 30
   resolution: [1280, 720]
 
 detection:
-  model_path: models/yolov8n.pt
+  model_path: models/best_ppe.pt
+  data_yaml: dataset/data.yaml
+  classes:
+    ppe_present: ['Hardhat', 'Gloves', 'Goggles', 'Mask', 'Safety Vest']     
+    ppe_violations: ['NO-Hardhat', 'NO-Gloves', 'NO-Goggles', 'NO-Mask', 'NO-Safety Vest']
+    critical: ['Fall-Detected']
+    environment: ['Safety Cone', 'Ladder']
+    person: ['Person'] 
   confidence_threshold: 0.6
   iou_threshold: 0.45
-  device: cuda                
+  device: cuda     
+
+     
 
 pose:
   min_detection_confidence: 0.5
