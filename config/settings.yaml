@@ -1,54 +1,53 @@
 camera:
-  source: test_videos\mult_sample.mp4                  
+  source: test_videos\mult_sample.mp4
   fps_limit: 30
   resolution: [1280, 720]
 
 detection:
   model_path: models/best_ppe.pt
   data_yaml: dataset/data.yaml
-  classes:
-    ppe_present: ['Hardhat', 'Gloves', 'Goggles', 'Mask', 'Safety Vest']     
-    ppe_violations: ['NO-Hardhat', 'NO-Gloves', 'NO-Goggles', 'NO-Mask', 'NO-Safety Vest']
-    critical: ['Fall-Detected']
-    environment: ['Safety Cone', 'Ladder']
-    person: ['Person'] 
-  confidence_threshold: 0.45
+  confidence_threshold: 0.4
   iou_threshold: 0.5
-  device: cuda     
+  device: cuda
+  violation_confidence_threshold: 0.65
+  violation_persistence_frames: 5
+
+  classes:
+    ppe_present:    ['Hardhat', 'Gloves', 'Goggles', 'Mask', 'Safety Vest']
+    ppe_violations: ['NO-Hardhat', 'NO-Gloves', 'NO-Goggles', 'NO-Mask', 'NO-Safety Vest']
+    critical:       ['Fall-Detected']
+    environment:    ['Safety Cone', 'Ladder']
+    person:         ['Person']
 
 pose:
   min_detection_confidence: 0.5
   min_tracking_confidence: 0.5
+
+fall_detection:
+  velocity_threshold: 0.35
+  horizontal_threshold: 60
 
 posture:
   neck_angle_threshold: 20
   back_angle_threshold: 30
   knee_angle_threshold: 160
 
-fall_detection:
-  velocity_threshold: 0.35
-  hip_knee_angle_threshold: 60
-
 tracker:
   max_age: 30
   min_hits: 3
-  minimum_matching_threshold: 0.5
-
-zones:
-  - id: zone_a
-    name: "Heavy Machinery Area"
-    required_ppe: [helmet, vest, gloves, goggles]
-  - id: zone_b
-    name: "General Floor"
-    required_ppe: [helmet, vest]
+  minimum_matching_threshold: 0.3
 
 alerts:
-  language: en                 # en, hi, ta, te, bn
+  language: en
   cooldown_sec: 10
   critical_violations:
     - fall
     - Fall-Detected
     - NO-Hardhat
+
+pipeline:
+  yolo_frame_skip: 2
+  pose_frame_skip: 3
 
 reporting:
   output_dir: reports/
@@ -56,4 +55,4 @@ reporting:
 
 database:
   pool_size: 5
-  echo: false                  # true = print all SQL queries (useful for learning)
+  echo: false

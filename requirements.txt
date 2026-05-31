@@ -14,7 +14,7 @@ alembic
 psycopg2-binary
 
 # GenAI
-google-generativeai
+groq
 langchain
 langchain-google-genai
 langchain-community
