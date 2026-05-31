@@ -13,6 +13,7 @@ from detection.violation_tracker import ViolationTracker
 from tracking.tracker import WorkerTracker
 from alerts.alert_engine import AlertEngine
 from db.crud import log_violation, log_alert, update_worker
+from genai.incident_handler import handle_incident_async
 
 config         = load_config()
 pipeline_cfg   = config["pipeline"]

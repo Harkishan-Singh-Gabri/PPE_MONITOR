@@ -24,9 +24,6 @@ streamlit
 plotly
 pandas
 
-# PDF
-fpdf2
-
 # Translation
 deep-translator
 
