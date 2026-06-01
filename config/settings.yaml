@@ -1,58 +1,64 @@
+alerts:
+  cooldown_sec: 10
+  critical_violations:
+  - fall
+  - Fall-Detected
+  - NO-Hardhat
+  language: en
 camera:
-  source: test_videos\mult_sample.mp4
   fps_limit: 30
-  resolution: [1280, 720]
-
+  resolution:
+  - 1280
+  - 720
+  source: C:\Users\HARKIS~1\AppData\Local\Temp\tmpdv9h47yk.mp4
+database:
+  echo: false
+  pool_size: 5
 detection:
-  model_path: models/best_ppe.pt
-  data_yaml: dataset/data.yaml
+  classes:
+    critical:
+    - Fall-Detected
+    environment:
+    - Safety Cone
+    - Ladder
+    person:
+    - Person
+    ppe_present:
+    - Hardhat
+    - Gloves
+    - Goggles
+    - Mask
+    - Safety Vest
+    ppe_violations:
+    - NO-Hardhat
+    - NO-Gloves
+    - NO-Goggles
+    - NO-Mask
+    - NO-Safety Vest
   confidence_threshold: 0.4
-  iou_threshold: 0.5
+  data_yaml: dataset/data.yaml
   device: cuda
+  iou_threshold: 0.5
+  model_path: models/best_ppe.pt
   violation_confidence_threshold: 0.65
   violation_persistence_frames: 5
-
-  classes:
-    ppe_present:    ['Hardhat', 'Gloves', 'Goggles', 'Mask', 'Safety Vest']
-    ppe_violations: ['NO-Hardhat', 'NO-Gloves', 'NO-Goggles', 'NO-Mask', 'NO-Safety Vest']
-    critical:       ['Fall-Detected']
-    environment:    ['Safety Cone', 'Ladder']
-    person:         ['Person']
-
+fall_detection:
+  horizontal_threshold: 60
+  velocity_threshold: 0.35
+pipeline:
+  pose_frame_skip: 3
+  yolo_frame_skip: 2
 pose:
   min_detection_confidence: 0.5
   min_tracking_confidence: 0.5
-
-fall_detection:
-  velocity_threshold: 0.35
-  horizontal_threshold: 60
-
 posture:
-  neck_angle_threshold: 20
   back_angle_threshold: 60
   knee_angle_threshold: 30
-
+  neck_angle_threshold: 20
+reporting:
+  company_name: Your Company Name
+  output_dir: reports/
 tracker:
   max_age: 90
   min_hits: 1
   minimum_matching_threshold: 0.15
-
-alerts:
-  language: en
-  cooldown_sec: 10
-  critical_violations:
-    - fall
-    - Fall-Detected
-    - NO-Hardhat
-
-pipeline:
-  yolo_frame_skip: 2
-  pose_frame_skip: 3
-
-reporting:
-  output_dir: reports/
-  company_name: "Your Company Name"
-
-database:
-  pool_size: 5
-  echo: false
