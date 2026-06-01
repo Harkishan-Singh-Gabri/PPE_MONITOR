@@ -46,11 +46,10 @@ class PPEPipeline:
         self.worker_analyzers = {}
 
         self.last_detections     = []
-        self.last_tracked        = []
         self.last_persons        = []
         self.last_worker_posture = {}
 
-        log.info("Pipeline ready")
+        log.info("Pipeline ready ✅")
 
     def _get_worker_analyzer(self, worker_id):
         if worker_id not in self.worker_analyzers:
@@ -87,28 +86,27 @@ class PPEPipeline:
         thread.start()
 
     def process_frame(self, frame):
-        run_yolo = (self.frame_count % YOLO_SKIP == 0)
-        run_pose = (self.frame_count % POSE_SKIP == 0)
 
-        # YOLO PPE Detection
-        if run_yolo:
+        # --- YOLO PPE Detection (every N frames) ---
+        if self.frame_count % YOLO_SKIP == 0:
             frame, detections, latency_ms = self.detector.detect(frame)
-            proxy                = [d for d in detections if d["class"] in WORKER_PROXY_CLASSES]
             self.last_detections = detections
-            self.last_tracked    = self.tracker.update(proxy)
-
-            for w in self.last_tracked:
-                self._async_db_write(update_worker, w["worker_id"])
         else:
             detections = self.last_detections
             latency_ms = 0
 
-        tracked_workers = self.last_tracked
+        # --- Worker Tracking (EVERY frame — keeps IDs stable) ---
+        proxy           = [d for d in detections
+                           if d["class"] in WORKER_PROXY_CLASSES]
+        tracked_workers = self.tracker.update(proxy)
 
-        # Pose Estimation
-        if run_pose:
-            frame, all_persons = self.pose.estimate(frame)
-            self.last_persons  = all_persons
+        for w in tracked_workers:
+            self._async_db_write(update_worker, w["worker_id"])
+
+        # --- Pose Estimation (every M frames) ---
+        if self.frame_count % POSE_SKIP == 0:
+            frame, all_persons    = self.pose.estimate(frame)
+            self.last_persons     = all_persons
 
             worker_posture = {}
             for i, landmarks in enumerate(all_persons):
@@ -126,7 +124,7 @@ class PPEPipeline:
         else:
             worker_posture = self.last_worker_posture
 
-        # Alert Engine
+        # --- Alert Engine ---
         all_alerts = []
         for w in tracked_workers:
             wid = w["worker_id"]
@@ -172,7 +170,7 @@ class PPEPipeline:
 
             all_alerts.extend(alerts)
 
-        # Draw Worker IDs + Risk
+        # --- Draw Worker IDs + Risk ---
         for w in tracked_workers:
             wid          = w["worker_id"]
             x1,y1,x2,y2 = w["bbox"]
@@ -186,7 +184,7 @@ class PPEPipeline:
             cv2.putText(frame, f"Risk:{risk}", (x1, y2+20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-        # Metrics
+        # --- Metrics ---
         self.frame_count += 1
         fps = self.frame_count / (time.time() - self.start_time)
 
@@ -198,11 +196,11 @@ class PPEPipeline:
             "falls_detected":   self.fall_count,
         }
 
-        cv2.putText(frame, f"FPS: {fps:.1f}",                         (20,40),
+        cv2.putText(frame, f"FPS: {fps:.1f}",                          (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(frame, f"Workers: {len(tracked_workers)}",         (20,70),
+        cv2.putText(frame, f"Workers: {len(tracked_workers)}",          (20, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(frame, f"Critical Violations: {self.violation_count}", (20,100),
+        cv2.putText(frame, f"Critical Violations: {self.violation_count}", (20, 100),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
 
         return frame, all_alerts, metrics

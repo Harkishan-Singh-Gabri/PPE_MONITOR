@@ -14,12 +14,29 @@ class WorkerTracker:
         self.tracker = sv.ByteTrack(
             lost_track_buffer          = track_config["max_age"],
             minimum_matching_threshold = track_config["minimum_matching_threshold"],
+            minimum_consecutive_frames = track_config["min_hits"],
         )
         log.info("ByteTrack worker tracker initialized")
 
     def update(self, detections):
+        """
+        Takes detections list.
+        Returns tracked workers with persistent IDs.
+        Always call every frame — even on skipped YOLO frames.
+        """
         if not detections:
-            return []
+            # still update tracker with empty detections
+            # keeps existing tracks alive during occlusion
+            empty = sv.Detections.empty()
+            tracked = self.tracker.update_with_detections(empty)
+            results = []
+            for i, tracker_id in enumerate(tracked.tracker_id):
+                results.append({
+                    "worker_id":  f"W-{int(tracker_id):02d}",
+                    "bbox":       tuple(map(int, tracked.xyxy[i])),
+                    "confidence": float(tracked.confidence[i]),
+                })
+            return results
 
         xyxy       = np.array([d["bbox"] for d in detections], dtype=float)
         confidence = np.array([d["confidence"] for d in detections], dtype=float)
@@ -64,7 +81,8 @@ if __name__ == "__main__":
 
         frame, detections, _ = detector.detect(frame)
 
-        proxy_detections = [d for d in detections if d["class"] in WORKER_PROXY_CLASSES]
+        proxy_detections = [d for d in detections
+                            if d["class"] in WORKER_PROXY_CLASSES]
         tracked_workers  = tracker.update(proxy_detections)
 
         for d in detections:

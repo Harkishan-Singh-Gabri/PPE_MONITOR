@@ -1,4 +1,5 @@
 import threading
+import time
 import cv2
 import base64
 from groq import Groq
@@ -8,8 +9,10 @@ from utils.config_loader import get_env
 client = Groq(api_key=get_env("GROQ_API_KEY"))
 MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct"
 
-_validation_results = {}
+_validation_results = {}    # {worker_id: "DANGEROUS" | "NORMAL" | "PENDING"}
 _pending            = set()
+_last_groq_call     = 0
+GROQ_MIN_INTERVAL   = 0.5   # max 2 calls/sec globally
 
 
 def _frame_to_base64(frame) -> str:
@@ -35,7 +38,7 @@ Construction workers routinely perform tasks that involve:
 * Kneeling, Squatting, Sitting on the ground
 * Working at floor level, Leaning forward
 * Reaching overhead, Temporary crouched positions
-These activities are often normal and should NOT automatically be considered dangerous.
+These are often normal and should NOT automatically be considered dangerous.
 Your decision must prioritize visual evidence from the image over the numerical risk score.
 
 Worker Information
@@ -60,13 +63,30 @@ Treat as NORMAL if posture appears task-related and stable.
 Treat as DANGEROUS only if image clearly shows unsafe posture with obvious ergonomic strain.
 
 Decision Rule: If uncertain, choose NORMAL.
-Output exactly one word — DANGEROUS or NORMAL. No explanations."""
+
+FINAL INSTRUCTION: Your entire response must be exactly one word.
+Either: DANGEROUS
+Or: NORMAL
+Any other output is wrong. One word only."""
 
 
 def validate_async(angles: dict, worker_id: str, frame=None):
+    """
+    Fire Groq validation in background.
+    Rate limited — max 2 calls/sec globally.
+    Sets result to PENDING until Groq responds.
+    """
+    global _last_groq_call
+
+    # rate limit check
+    now = time.time()
+    if now - _last_groq_call < GROQ_MIN_INTERVAL:
+        return
     if worker_id in _pending:
         return
 
+    _last_groq_call = now
+    _validation_results[worker_id] = "PENDING"
     frame_copy = frame.copy() if frame is not None else None
 
     def _run():
@@ -81,7 +101,9 @@ def validate_async(angles: dict, worker_id: str, frame=None):
                         "role": "user",
                         "content": [
                             {"type": "text",      "text": prompt},
-                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
+                            {"type": "image_url", "image_url": {
+                                "url": f"data:image/jpeg;base64,{b64}"
+                            }}
                         ]
                     }
                 ]
@@ -96,21 +118,29 @@ def validate_async(angles: dict, worker_id: str, frame=None):
 
             result = response.choices[0].message.content.strip().upper()
 
+            # only accept exact words
             if result not in ("DANGEROUS", "NORMAL"):
                 log.warning(f"Unexpected Groq response: '{result}' — defaulting NORMAL")
                 result = "NORMAL"
 
-            _validation_results[worker_id] = (result == "DANGEROUS")
+            _validation_results[worker_id] = result
             log.debug(f"Groq posture [{worker_id}]: {result}")
 
         except Exception as e:
-            log.warning(f"Groq validation failed: {e} — using rule-based fallback")
-            _validation_results[worker_id] = True
+            log.warning(f"Groq validation failed: {e} — defaulting NORMAL")
+            _validation_results[worker_id] = "NORMAL"
         finally:
             _pending.discard(worker_id)
 
     threading.Thread(target=_run, daemon=True).start()
 
 
-def get_validation_result(worker_id: str) -> bool:
-    return _validation_results.get(worker_id, True)
+def get_validation_result(worker_id: str) -> str:
+    """
+    Returns:
+      "PENDING"   — Groq call in progress, don't alert yet
+      "DANGEROUS" — confirmed risk, alert
+      "NORMAL"    — false positive, suppress
+      None        — no validation fired yet
+    """
+    return _validation_results.get(worker_id, None)

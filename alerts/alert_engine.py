@@ -58,21 +58,35 @@ class AlertEngine:
                 })
                 log.warning(msg)
 
-        # --- posture HIGH — Groq validates async ---
-        if risk_level == "HIGH" and self._cooldown_passed(worker_id, "posture_HIGH"):
-            validate_async(angles or {}, worker_id, frame=frame)
-            is_real_risk = get_validation_result(worker_id)
+        # --- posture HIGH — two-pass Groq validation ---
+        if risk_level == "HIGH":
+            result = get_validation_result(worker_id)
 
-            if is_real_risk:
-                msg = f"HIGH posture risk — {worker_id}"
-                alerts.append({
-                    "message":        translate(msg),
-                    "severity":       "HIGH",
-                    "worker_id":      worker_id,
-                    "violation_type": "posture_HIGH",
-                })
-                log.warning(msg)
-            else:
-                log.debug(f"Groq rejected posture alert for {worker_id} — normal work position")
+            if result is None:
+                # first time seeing this worker — fire Groq, skip alert this frame
+                validate_async(angles or {}, worker_id, frame=frame)
+
+            elif result == "PENDING":
+                # Groq still thinking — skip alert this frame
+                pass
+
+            elif result == "NORMAL":
+                # Groq confirmed false positive — suppress silently
+                log.debug(f"Groq: {worker_id} posture is NORMAL — suppressed")
+
+            elif result == "DANGEROUS":
+                # Groq confirmed real risk — alert
+                if self._cooldown_passed(worker_id, "posture_HIGH"):
+                    msg = f"HIGH posture risk — {worker_id}"
+                    alerts.append({
+                        "message":        translate(msg),
+                        "severity":       "HIGH",
+                        "worker_id":      worker_id,
+                        "violation_type": "posture_HIGH",
+                    })
+                    log.warning(msg)
+                    # reset result so Groq re-evaluates next trigger
+                    from genai.posture_validator import _validation_results
+                    _validation_results.pop(worker_id, None)
 
         return alerts

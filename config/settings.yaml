@@ -29,13 +29,13 @@ fall_detection:
 
 posture:
   neck_angle_threshold: 20
-  back_angle_threshold: 30
-  knee_angle_threshold: 160
+  back_angle_threshold: 60
+  knee_angle_threshold: 30
 
 tracker:
-  max_age: 30
-  min_hits: 3
-  minimum_matching_threshold: 0.3
+  max_age: 90
+  min_hits: 1
+  minimum_matching_threshold: 0.15
 
 alerts:
   language: en
