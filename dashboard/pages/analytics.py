@@ -82,7 +82,7 @@ def show():
             yaxis=dict(showgrid=True, gridcolor="#f1f5f9",
                        tickfont=dict(size=10,color="#94a3b8"), showline=False, zeroline=False),
         )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
@@ -106,7 +106,7 @@ def show():
             yaxis=dict(showgrid=False, tickfont=dict(size=10,color="#334155"),
                        showline=False),
         )
-        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig2, width="stretch", config={"displayModeBar": False})
         st.markdown('</div>', unsafe_allow_html=True)
 
     # row 2 — by worker + severity donut
@@ -131,7 +131,7 @@ def show():
             yaxis=dict(showgrid=True, gridcolor="#f1f5f9",
                        tickfont=dict(size=10,color="#94a3b8"), zeroline=False),
         )
-        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig3, width="stretch", config={"displayModeBar": False})
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col4:
@@ -153,5 +153,5 @@ def show():
             showlegend=True,
         )
         fig4.update_traces(textinfo="percent+label", textfont_size=11)
-        st.plotly_chart(fig4, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig4, width="stretch", config={"displayModeBar": False})
         st.markdown('</div>', unsafe_allow_html=True)

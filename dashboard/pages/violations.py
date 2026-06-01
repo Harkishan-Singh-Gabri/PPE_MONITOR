@@ -91,7 +91,7 @@ def show():
         "font-size": "0.85rem",
     })
 
-    st.dataframe(styled, use_container_width=True, height=450)
+    st.dataframe(styled, width="stretch", height=450)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # export

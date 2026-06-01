@@ -66,8 +66,8 @@ def show():
 
         bcol1, bcol2 = st.columns(2)
         start = bcol1.button("▶ Start",  type="primary",
-                             use_container_width=True, disabled=(src is None))
-        stop  = bcol2.button("⏹ Stop",   use_container_width=True)
+                             width="stretch", disabled=(src is None))
+        stop  = bcol2.button("⏹ Stop",   width="stretch")
 
     if "running" not in st.session_state:
         st.session_state.running = False
@@ -100,7 +100,7 @@ def show():
 
             frame, alerts, metrics = pipeline.process_frame(frame)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_box.image(rgb, channels="RGB", use_container_width=True)
+            frame_box.image(rgb, channels="RGB", use_container_width="stretch")
 
             fps_box.metric("FPS",                metrics["fps"])
             latency_box.metric("Latency",         f"{metrics['latency_ms']}ms")

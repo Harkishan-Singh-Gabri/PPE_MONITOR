@@ -31,7 +31,7 @@ def show():
                     unsafe_allow_html=True)
 
         for q in SUGGESTED:
-            if st.button(q, use_container_width=True, key=f"sugg_{q}"):
+            if st.button(q, width="stretch", key=f"sugg_{q}"):
                 if "chat_history" not in st.session_state:
                     st.session_state.chat_history = []
                 with st.spinner("Querying..."):
@@ -88,7 +88,7 @@ def show():
         with icol1:
             question = st.chat_input("Ask a safety question...")
         with icol2:
-            if st.button("🗑 Clear", use_container_width=True):
+            if st.button("🗑 Clear", width="stretch"):
                 st.session_state.chat_history = []
                 st.rerun()
 

@@ -166,7 +166,7 @@ def show():
             st.markdown('<div class="section-title">Violations Over Time</div>',
                         unsafe_allow_html=True)
             fig = _violations_over_time_chart(violations)
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
             st.markdown('</div>', unsafe_allow_html=True)
 
         with top_col:
@@ -232,7 +232,7 @@ def show():
             "Any falls detected?",
         ]
         for p in prompts:
-            if st.button(p, key=f"prompt_{p}", use_container_width=True):
+            if st.button(p, key=f"prompt_{p}", width="stretch"):
                 with st.spinner(""):
                     answer = ask(p, st.session_state.home_chat)
                 st.session_state.home_chat.append({"role": "user",      "content": p})

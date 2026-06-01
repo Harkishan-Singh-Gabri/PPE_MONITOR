@@ -5,45 +5,37 @@ sys.path.append(str(Path(__file__).parent.parent))
 import streamlit as st
 
 st.set_page_config(
-    page_title = "SafeGuard — PPE Monitor",
-    page_icon  = "🦺",
-    layout     = "wide",
-    initial_sidebar_state = "expanded"
+    page_title="SafeGuard — PPE Monitor",
+    page_icon="🦺",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# ── Global CSS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-/* root */
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-}
+html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 
-/* hide default streamlit elements */
+/* hide streamlit default elements including auto page list */
 #MainMenu, footer, header { visibility: hidden; }
 .stDeployButton { display: none; }
+[data-testid="stSidebarNav"] { display: none; }
 
-/* sidebar */
+/* sidebar dark */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
     border-right: 1px solid #334155;
 }
-[data-testid="stSidebar"] * {
-    color: #cbd5e1 !important;
-}
+[data-testid="stSidebar"] * { color: #cbd5e1 !important; }
 [data-testid="stSidebar"] .stRadio label {
     color: #94a3b8 !important;
     font-size: 0.9rem;
-    padding: 0.5rem 0;
-}
-[data-testid="stSidebar"] .stRadio [data-checked="true"] label {
-    color: #f8fafc !important;
-    font-weight: 600;
+    padding: 0.4rem 0;
 }
 
-/* main background */
+/* main content LIGHT */
+.main { background: #f8fafc; }
 .main .block-container {
     background: #f8fafc;
     padding: 1.5rem 2rem;
@@ -55,29 +47,15 @@ html, body, [class*="css"] {
     background: white;
     border-radius: 16px;
     padding: 1.2rem 1.4rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     border: 1px solid #f1f5f9;
-    height: 100%;
 }
 .metric-card .label {
-    font-size: 0.78rem;
-    color: #94a3b8;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.3rem;
+    font-size: 0.78rem; color: #94a3b8; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.3rem;
 }
-.metric-card .value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #0f172a;
-    line-height: 1.1;
-}
-.metric-card .delta {
-    font-size: 0.78rem;
-    margin-top: 0.3rem;
-    font-weight: 500;
-}
+.metric-card .value { font-size: 2rem; font-weight: 700; color: #0f172a; line-height: 1.1; }
+.metric-card .delta { font-size: 0.78rem; margin-top: 0.3rem; font-weight: 500; }
 .delta-up   { color: #ef4444; }
 .delta-down { color: #22c55e; }
 
@@ -90,130 +68,62 @@ html, body, [class*="css"] {
     border: 1px solid #f1f5f9;
     margin-bottom: 1rem;
 }
-.section-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #0f172a;
-    margin-bottom: 1rem;
-}
+.section-title { font-size: 1rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
 
-/* alert badges */
+/* badges */
 .badge {
-    display: inline-block;
-    padding: 0.2rem 0.55rem;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    display: inline-block; padding: 0.2rem 0.55rem;
+    border-radius: 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
 }
-.badge-critical { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-.badge-high     { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
-.badge-medium   { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.badge-critical { background:#fef2f2; color:#dc2626; border:1px solid #fecaca; }
+.badge-high     { background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; }
+.badge-medium   { background:#fffbeb; color:#d97706; border:1px solid #fde68a; }
 
-/* alert row */
+/* alert rows */
 .alert-row {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.7rem 0;
-    border-bottom: 1px solid #f1f5f9;
+    display:flex; align-items:center; gap:0.75rem;
+    padding:0.7rem 0; border-bottom:1px solid #f1f5f9;
 }
-.alert-row:last-child { border-bottom: none; }
-.alert-msg { font-size: 0.85rem; color: #334155; flex: 1; }
-.alert-time { font-size: 0.75rem; color: #94a3b8; font-family: 'DM Mono', monospace; }
+.alert-row:last-child { border-bottom:none; }
+.alert-msg  { font-size:0.85rem; color:#334155; flex:1; }
+.alert-time { font-size:0.75rem; color:#94a3b8; font-family:'DM Mono',monospace; }
 
-/* top violation row */
+/* top violation rows */
 .viol-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 0;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 0.875rem;
-    color: #334155;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0.6rem 0; border-bottom:1px solid #f1f5f9;
+    font-size:0.875rem; color:#334155;
 }
-.viol-row:last-child { border-bottom: none; }
-.viol-count {
-    font-weight: 700;
-    color: #0f172a;
-    font-family: 'DM Mono', monospace;
-}
+.viol-row:last-child { border-bottom:none; }
+.viol-count { font-weight:700; color:#0f172a; font-family:'DM Mono',monospace; }
 
-/* page title */
-.page-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 0.2rem;
-}
-.page-subtitle {
-    font-size: 0.9rem;
-    color: #64748b;
-    margin-bottom: 1.2rem;
-}
+/* page titles */
+.page-title    { font-size:1.6rem; font-weight:700; color:#0f172a; margin-bottom:0.2rem; }
+.page-subtitle { font-size:0.9rem; color:#64748b; margin-bottom:1.2rem; }
 
-/* status dot */
-.status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    display: inline-block;
-    margin-right: 6px;
-}
-.status-online  { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-.status-offline { background: #94a3b8; }
-
-/* chat message */
+/* chat bubbles */
 .chat-user {
-    background: #6366f1;
-    color: white;
-    padding: 0.6rem 0.9rem;
-    border-radius: 12px 12px 2px 12px;
-    font-size: 0.85rem;
-    margin: 0.4rem 0;
-    max-width: 85%;
-    margin-left: auto;
+    background:#6366f1; color:white; padding:0.6rem 0.9rem;
+    border-radius:12px 12px 2px 12px; font-size:0.85rem;
+    margin:0.4rem 0; max-width:85%; margin-left:auto;
 }
 .chat-bot {
-    background: #f1f5f9;
-    color: #334155;
-    padding: 0.6rem 0.9rem;
-    border-radius: 12px 12px 12px 2px;
-    font-size: 0.85rem;
-    margin: 0.4rem 0;
-    max-width: 90%;
-}
-
-/* nav item */
-.nav-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem 0.8rem;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #94a3b8;
-    transition: all 0.15s;
-    margin-bottom: 0.2rem;
-}
-.nav-item:hover, .nav-item.active {
-    background: rgba(255,255,255,0.08);
-    color: #f8fafc;
+    background:#f1f5f9; color:#334155; padding:0.6rem 0.9rem;
+    border-radius:12px 12px 12px 2px; font-size:0.85rem;
+    margin:0.4rem 0; max-width:90%;
 }
 </style>
 """, unsafe_allow_html=True)
 
-
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style="padding: 1rem 0.5rem 1.5rem;">
-        <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.3rem;">
+    <div style="padding:1rem 0.5rem 1.5rem;">
+        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
             <span style="font-size:1.6rem;">🦺</span>
-            <span style="font-size:1.15rem; font-weight:700; color:#f8fafc;">SafeGuard</span>
+            <span style="font-size:1.15rem;font-weight:700;color:#f8fafc;">SafeGuard</span>
         </div>
-        <div style="font-size:0.72rem; color:#64748b; padding-left:0.2rem;">
+        <div style="font-size:0.72rem;color:#64748b;padding-left:0.2rem;">
             AI Workplace Safety Monitor
         </div>
     </div>
@@ -231,29 +141,25 @@ with st.sidebar:
 
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""
-    <div style="padding: 0.8rem; background: rgba(255,255,255,0.05);
-                border-radius: 10px; border: 1px solid #334155;">
-        <div style="font-size:0.7rem; color:#64748b; margin-bottom:0.5rem; font-weight:600;">
+    <div style="padding:0.8rem;background:rgba(255,255,255,0.05);
+                border-radius:10px;border:1px solid #334155;">
+        <div style="font-size:0.7rem;color:#64748b;margin-bottom:0.5rem;font-weight:600;">
             SYSTEM STATUS
         </div>
-        <div style="font-size:0.8rem; color:#22c55e; font-weight:500;">
-            <span style="display:inline-block; width:7px; height:7px; background:#22c55e;
-                         border-radius:50%; margin-right:6px; box-shadow:0 0 6px #22c55e;"></span>
+        <div style="font-size:0.8rem;color:#22c55e;font-weight:500;">
+            <span style="display:inline-block;width:7px;height:7px;background:#22c55e;
+                         border-radius:50%;margin-right:6px;box-shadow:0 0 6px #22c55e;"></span>
             All systems operational
         </div>
     </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="font-size:0.7rem; color:#475569; text-align:center; line-height:1.8;">
+    <br><br>
+    <div style="font-size:0.7rem;color:#475569;text-align:center;line-height:1.8;">
         YOLOv8 · ByteTrack · Groq LLaMA<br>
         <span style="color:#334155;">v1.0.0</span>
     </div>
     """, unsafe_allow_html=True)
 
-
-# ── Page Routing ──────────────────────────────────────────────────────────────
+# ── Routing ───────────────────────────────────────────────────────────────────
 if "🏠" in page:
     from dashboard.pages.home import show
     show()
