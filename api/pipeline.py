@@ -13,12 +13,11 @@ from detection.violation_tracker import ViolationTracker
 from tracking.tracker import WorkerTracker
 from alerts.alert_engine import AlertEngine
 from db.crud import log_violation, log_alert, update_worker
-from genai.incident_handler import handle_incident_async
 
-config         = load_config()
-pipeline_cfg   = config["pipeline"]
-YOLO_SKIP      = pipeline_cfg["yolo_frame_skip"]
-POSE_SKIP      = pipeline_cfg["pose_frame_skip"]
+config       = load_config()
+pipeline_cfg = config["pipeline"]
+YOLO_SKIP    = pipeline_cfg["yolo_frame_skip"]
+POSE_SKIP    = pipeline_cfg["pose_frame_skip"]
 
 WORKER_PROXY_CLASSES = ["Person", "Hardhat", "NO-Hardhat"]
 
@@ -33,12 +32,12 @@ RISK_COLORS = {
 class PPEPipeline:
     def __init__(self):
         log.info("Initializing PPE Pipeline...")
-        self.stream    = VideoStream()
-        self.detector  = PPEDetector()
-        self.pose      = PoseEstimator()
-        self.tracker   = WorkerTracker()
-        self.alert     = AlertEngine()
-        self.vtracker  = ViolationTracker()
+        self.stream   = VideoStream()
+        self.detector = PPEDetector()
+        self.pose     = PoseEstimator()
+        self.tracker  = WorkerTracker()
+        self.alert    = AlertEngine()
+        self.vtracker = ViolationTracker()
 
         self.frame_count      = 0
         self.start_time       = time.time()
@@ -46,7 +45,6 @@ class PPEPipeline:
         self.fall_count       = 0
         self.worker_analyzers = {}
 
-        # cache last results for skipped frames
         self.last_detections     = []
         self.last_tracked        = []
         self.last_persons        = []
@@ -85,7 +83,6 @@ class PPEPipeline:
         return path
 
     def _async_db_write(self, fn, *args, **kwargs):
-        """Fire DB write in background thread — never blocks main loop."""
         thread = threading.Thread(target=fn, args=args, kwargs=kwargs, daemon=True)
         thread.start()
 
@@ -93,7 +90,7 @@ class PPEPipeline:
         run_yolo = (self.frame_count % YOLO_SKIP == 0)
         run_pose = (self.frame_count % POSE_SKIP == 0)
 
-        # --- YOLO PPE Detection (every N frames) ---
+        # YOLO PPE Detection
         if run_yolo:
             frame, detections, latency_ms = self.detector.detect(frame)
             proxy                = [d for d in detections if d["class"] in WORKER_PROXY_CLASSES]
@@ -103,16 +100,15 @@ class PPEPipeline:
             for w in self.last_tracked:
                 self._async_db_write(update_worker, w["worker_id"])
         else:
-            # reuse last frame detections
-            detections     = self.last_detections
-            latency_ms     = 0
+            detections = self.last_detections
+            latency_ms = 0
 
         tracked_workers = self.last_tracked
 
-        # --- Pose Estimation (every M frames) ---
+        # Pose Estimation
         if run_pose:
-            frame, all_persons    = self.pose.estimate(frame)
-            self.last_persons     = all_persons
+            frame, all_persons = self.pose.estimate(frame)
+            self.last_persons  = all_persons
 
             worker_posture = {}
             for i, landmarks in enumerate(all_persons):
@@ -130,7 +126,7 @@ class PPEPipeline:
         else:
             worker_posture = self.last_worker_posture
 
-        # --- Alert Engine with Violation Persistence ---
+        # Alert Engine
         all_alerts = []
         for w in tracked_workers:
             wid = w["worker_id"]
@@ -141,7 +137,6 @@ class PPEPipeline:
                 and d["class"] not in WORKER_PROXY_CLASSES
             ]
 
-            # only confirmed violations (seen N consecutive frames)
             confirmed_detections = self.vtracker.update(wid, raw_detections)
 
             posture_data  = worker_posture.get(wid, {})
@@ -149,12 +144,12 @@ class PPEPipeline:
             fall_detected = posture_data.get("fall_detected", False)
 
             alerts = self.alert.process(
-                worker_id = wid,
-                detections = confirmed_detections,
-                risk_level = risk_level,
+                worker_id     = wid,
+                detections    = confirmed_detections,
+                risk_level    = risk_level,
                 fall_detected = fall_detected,
-                angles = posture_data.get("angles", {}),
-                frame = frame,   
+                angles        = posture_data.get("angles", {}),
+                frame         = frame,
             )
 
             for a in alerts:
@@ -177,7 +172,7 @@ class PPEPipeline:
 
             all_alerts.extend(alerts)
 
-        # --- Draw Worker IDs + Risk ---
+        # Draw Worker IDs + Risk
         for w in tracked_workers:
             wid          = w["worker_id"]
             x1,y1,x2,y2 = w["bbox"]
@@ -191,7 +186,7 @@ class PPEPipeline:
             cv2.putText(frame, f"Risk:{risk}", (x1, y2+20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-        # --- Metrics Overlay ---
+        # Metrics
         self.frame_count += 1
         fps = self.frame_count / (time.time() - self.start_time)
 
@@ -203,11 +198,11 @@ class PPEPipeline:
             "falls_detected":   self.fall_count,
         }
 
-        cv2.putText(frame, f"FPS: {fps:.1f}",                          (20, 40),
+        cv2.putText(frame, f"FPS: {fps:.1f}",                         (20,40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(frame, f"Workers: {len(tracked_workers)}",          (20, 70),
+        cv2.putText(frame, f"Workers: {len(tracked_workers)}",         (20,70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(frame, f"Critical Violations: {self.violation_count}", (20, 100),
+        cv2.putText(frame, f"Critical Violations: {self.violation_count}", (20,100),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
 
         return frame, all_alerts, metrics

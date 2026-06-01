@@ -6,7 +6,7 @@ from utils.logger import log
 from utils.config_loader import get_env
 
 client = Groq(api_key=get_env("GROQ_API_KEY"))
-MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct"  # vision capable
+MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 _validation_results = {}
 _pending            = set()
@@ -52,32 +52,18 @@ STEP 1 – Visual Verification
 * Is the worker kneeling, crouching, or sitting in a controlled manner?
 
 STEP 2 – Ergonomic Risk Assessment
-Consider whether the posture shows:
 * Extreme trunk flexion, severe neck bending, awkward twisting
-* Loss of balance, potential fall risk
-* Signs of collapse or injury
+* Loss of balance, potential fall risk, signs of collapse or injury
 
 STEP 3 – False Positive Filtering
-Treat as NORMAL if:
-* Posture appears task-related and stable
-* Worker is stably kneeling or crouching
-* Angles look extreme numerically but appear reasonable visually
-
-Treat as DANGEROUS only if:
-* Image clearly shows unsafe posture
-* Obvious ergonomic strain or loss of stability
-* A safety officer would realistically intervene
+Treat as NORMAL if posture appears task-related and stable.
+Treat as DANGEROUS only if image clearly shows unsafe posture with obvious ergonomic strain.
 
 Decision Rule: If uncertain, choose NORMAL.
-Output exactly one word — DANGEROUS or NORMAL.
-Do not provide explanations or confidence scores."""
+Output exactly one word — DANGEROUS or NORMAL. No explanations."""
 
 
 def validate_async(angles: dict, worker_id: str, frame=None):
-    """
-    Fire Groq validation in background thread.
-    Never blocks main pipeline loop.
-    """
     if worker_id in _pending:
         return
 
@@ -95,12 +81,7 @@ def validate_async(angles: dict, worker_id: str, frame=None):
                         "role": "user",
                         "content": [
                             {"type": "text",      "text": prompt},
-                            {
-                                "type":      "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{b64}"
-                                }
-                            }
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}}
                         ]
                     }
                 ]
@@ -108,9 +89,9 @@ def validate_async(angles: dict, worker_id: str, frame=None):
                 messages = [{"role": "user", "content": prompt}]
 
             response = client.chat.completions.create(
-                model    = MODEL,
-                messages = messages,
-                max_tokens = 5,        # only need one word
+                model      = MODEL,
+                messages   = messages,
+                max_tokens = 5,
             )
 
             result = response.choices[0].message.content.strip().upper()
@@ -133,28 +114,3 @@ def validate_async(angles: dict, worker_id: str, frame=None):
 
 def get_validation_result(worker_id: str) -> bool:
     return _validation_results.get(worker_id, True)
-
-
-if __name__ == "__main__":
-    import time
-    import numpy as np
-
-    dummy_frame = np.zeros((720, 1280, 3), dtype=np.uint8)
-
-    print("Test 1 — sitting worker (should be NORMAL):")
-    validate_async(
-        angles    = {"neck": 160.0, "back": 45.0, "knee": 65.0},
-        worker_id = "W-01",
-        frame     = dummy_frame
-    )
-    time.sleep(5)
-    print(f"  W-01 dangerous: {get_validation_result('W-01')}")
-
-    print("\nTest 2 — normal standing (should be NORMAL):")
-    validate_async(
-        angles    = {"neck": 25.0, "back": 10.0, "knee": 170.0},
-        worker_id = "W-02",
-        frame     = dummy_frame
-    )
-    time.sleep(5)
-    print(f"  W-02 dangerous: {get_validation_result('W-02')}")

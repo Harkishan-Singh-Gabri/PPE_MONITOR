@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from db.database import get_session
 from db.models import Worker, Violation, Alert
 from utils.logger import log
@@ -6,7 +6,6 @@ from utils.logger import log
 
 def log_violation(worker_id, violation_type, severity,
                   confidence=None, zone="general", snapshot_path=None):
-    """Save a violation to DB."""
     session = get_session()
     try:
         v = Violation(
@@ -16,7 +15,7 @@ def log_violation(worker_id, violation_type, severity,
             confidence     = confidence,
             zone           = zone,
             snapshot_path  = snapshot_path,
-            timestamp      = datetime.now(timezone.utc)
+            timestamp      = datetime.utcnow()
         )
         session.add(v)
         session.commit()
@@ -29,7 +28,6 @@ def log_violation(worker_id, violation_type, severity,
 
 
 def log_alert(worker_id, message, severity, violation_type):
-    """Save an alert to DB."""
     session = get_session()
     try:
         a = Alert(
@@ -37,11 +35,10 @@ def log_alert(worker_id, message, severity, violation_type):
             message        = message,
             severity       = severity,
             violation_type = violation_type,
-            timestamp      = datetime.now(timezone.utc)
+            timestamp      = datetime.utcnow()
         )
         session.add(a)
         session.commit()
-        log.debug(f"Alert logged: {worker_id} — {violation_type}")
     except Exception as e:
         session.rollback()
         log.error(f"Failed to log alert: {e}")
@@ -50,12 +47,11 @@ def log_alert(worker_id, message, severity, violation_type):
 
 
 def update_worker(worker_id):
-    """Upsert worker last seen timestamp."""
     session = get_session()
     try:
         worker = session.query(Worker).filter_by(worker_id=worker_id).first()
         if worker:
-            worker.last_seen = datetime.now(timezone.utc)
+            worker.last_seen = datetime.utcnow()
         else:
             session.add(Worker(worker_id=worker_id))
         session.commit()
@@ -67,7 +63,6 @@ def update_worker(worker_id):
 
 
 def get_violations(limit=50):
-    """Fetch recent violations."""
     session = get_session()
     try:
         return session.query(Violation)\
@@ -78,7 +73,6 @@ def get_violations(limit=50):
 
 
 def get_alerts(limit=50):
-    """Fetch recent alerts."""
     session = get_session()
     try:
         return session.query(Alert)\
@@ -89,13 +83,10 @@ def get_alerts(limit=50):
 
 
 def get_compliance_rate():
-    """
-    Compliance % = workers with no violations / total workers today.
-    """
     session = get_session()
     try:
         from sqlalchemy import func, cast, Date
-        today = datetime.now(timezone.utc).date()
+        today = datetime.utcnow().date()
 
         total_workers = session.query(
             func.count(func.distinct(Worker.worker_id))
@@ -111,24 +102,3 @@ def get_compliance_rate():
         return round(compliance, 1)
     finally:
         session.close()
-
-
-if __name__ == "__main__":
-    from db.database import init_db
-    init_db()
-
-    # test writes
-    update_worker("W-01")
-    update_worker("W-02")
-
-    log_violation("W-01", "NO-Hardhat", "HIGH", confidence=0.82)
-    log_violation("W-02", "Fall-Detected", "CRITICAL", confidence=0.91)
-    log_alert("W-01", "WARNING: NO-Hardhat — W-01", "HIGH", "NO-Hardhat")
-
-    # test reads
-    violations = get_violations()
-    print(f"\nViolations in DB: {len(violations)}")
-    for v in violations:
-        print(f"  {v.worker_id} — {v.violation_type} — {v.severity} — {v.timestamp}")
-
-    print(f"\nCompliance rate: {get_compliance_rate()}%")

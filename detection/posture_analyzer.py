@@ -14,7 +14,7 @@ RISK_COLORS = {
     "UNKNOWN": (128, 128, 128),
 }
 
-_logged = False  # log init only once across all instances
+_logged = False   # log init only once across all instances
 
 
 class PostureAnalyzer:
@@ -28,6 +28,10 @@ class PostureAnalyzer:
         self.fall_cooldown = 0
 
     def analyze(self, landmarks):
+        """
+        Analyze a single person's landmarks.
+        Returns: risk_level, risk_score, angles dict, fall_detected bool
+        """
         if not landmarks:
             return "UNKNOWN", 0, {}, False
 
@@ -44,8 +48,8 @@ class PostureAnalyzer:
 
         knee_angle = None
         if is_visible(
-            landmarks.get("left_hip", {}),
-            landmarks.get("left_knee", {}),
+            landmarks.get("left_hip",   {}),
+            landmarks.get("left_knee",  {}),
             landmarks.get("left_ankle", {})
         ):
             knee_angle = calculate_angle(
@@ -77,10 +81,10 @@ class PostureAnalyzer:
         self.hip_y_history.append(hip_y)
 
         if len(self.hip_y_history) == 10 and self.fall_cooldown == 0:
-            drop         = self.hip_y_history[-1] - self.hip_y_history[0]
-            velocity     = drop / 10
-            is_fast_drop = velocity > fall_config["velocity_threshold"] * 100
-            shoulder_y   = mid_shoulder["y"]
+            drop          = self.hip_y_history[-1] - self.hip_y_history[0]
+            velocity      = drop / 10
+            is_fast_drop  = velocity > fall_config["velocity_threshold"] * 100
+            shoulder_y    = mid_shoulder["y"]
             is_horizontal = abs(shoulder_y - hip_y) < fall_config["horizontal_threshold"]
 
             if is_fast_drop and is_horizontal:

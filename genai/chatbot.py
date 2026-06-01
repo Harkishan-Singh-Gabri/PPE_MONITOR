@@ -8,7 +8,6 @@ config = load_config()
 client = Groq(api_key=get_env("GROQ_API_KEY"))
 MODEL  = "llama-3.3-70b-versatile"
 
-# give Groq schema context so it writes correct SQL
 DB_SCHEMA = """
 Tables in the database:
 
@@ -25,12 +24,10 @@ Tables in the database:
 
 
 def _generate_sql(question: str, chat_history: list) -> str:
-    """Ask Groq to convert natural language question to SQL."""
-
     history_text = ""
     if chat_history:
         history_text = "\nPrevious conversation:\n"
-        for msg in chat_history[-4:]:   # last 4 messages for context
+        for msg in chat_history[-4:]:
             history_text += f"{msg['role'].upper()}: {msg['content']}\n"
 
     prompt = f"""You are a SQL expert for a workplace safety monitoring system.
@@ -39,7 +36,7 @@ Convert the user's question into a valid PostgreSQL query.
 {DB_SCHEMA}
 
 Rules:
-- Use only SELECT statements — never INSERT, UPDATE, DELETE
+- Only SELECT statements
 - For "today" use: DATE(timestamp) = CURRENT_DATE
 - For worker counts use COUNT(DISTINCT worker_id)
 - Always LIMIT to 50 rows max
@@ -60,7 +57,6 @@ SQL:"""
 
 
 def _run_sql(sql: str) -> list:
-    """Execute SQL query, return results as list of dicts."""
     session = get_session()
     try:
         result = session.execute(text(sql))
@@ -75,18 +71,17 @@ def _run_sql(sql: str) -> list:
 
 
 def _summarize(question: str, results: list) -> str:
-    """Ask Groq to summarize SQL results in plain English."""
     if not results:
         return "No data found for that query."
 
     prompt = f"""You are a workplace safety assistant.
 The supervisor asked: "{question}"
 
-Query results from the safety database:
+Query results:
 {results}
 
-Summarize this data in 2-3 clear, concise sentences.
-Be direct and factual. Mention specific worker IDs, counts, and timestamps where relevant.
+Summarize in 2-3 clear, concise sentences.
+Be direct and factual. Mention worker IDs, counts, timestamps where relevant.
 Do not mention SQL or databases."""
 
     response = client.chat.completions.create(
@@ -98,10 +93,6 @@ Do not mention SQL or databases."""
 
 
 def ask(question: str, chat_history: list = []) -> str:
-    """
-    Main chatbot function.
-    Takes question + history, returns plain English answer.
-    """
     try:
         sql     = _generate_sql(question, chat_history)
         results = _run_sql(sql)
@@ -117,8 +108,7 @@ if __name__ == "__main__":
     from db.database import init_db
     init_db()
 
-    # simulate conversation
-    history = []
+    history   = []
     questions = [
         "How many violations happened today?",
         "Which worker had the most violations?",

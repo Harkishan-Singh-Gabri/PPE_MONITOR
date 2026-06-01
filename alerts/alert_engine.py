@@ -23,10 +23,6 @@ class AlertEngine:
 
     def process(self, worker_id, detections, risk_level,
                 fall_detected, angles=None, frame=None):
-        """
-        Takes per-worker data, returns list of alerts.
-        Gemini validates HIGH posture risk using image + angles.
-        """
         alerts = []
 
         # --- fall ---
@@ -62,13 +58,9 @@ class AlertEngine:
                 })
                 log.warning(msg)
 
-        # --- posture HIGH — Gemini vision validates async ---
+        # --- posture HIGH — Groq validates async ---
         if risk_level == "HIGH" and self._cooldown_passed(worker_id, "posture_HIGH"):
-            validate_async(
-                angles    = angles or {},
-                worker_id = worker_id,
-                frame     = frame          # pass actual frame for visual assessment
-            )
+            validate_async(angles or {}, worker_id, frame=frame)
             is_real_risk = get_validation_result(worker_id)
 
             if is_real_risk:
@@ -81,6 +73,6 @@ class AlertEngine:
                 })
                 log.warning(msg)
             else:
-                log.debug(f"Gemini rejected posture alert for {worker_id} — normal work position")
+                log.debug(f"Groq rejected posture alert for {worker_id} — normal work position")
 
         return alerts
