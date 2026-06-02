@@ -1,29 +1,15 @@
-# Computer Vision
 ultralytics
 opencv-python
 supervision
 lapx
-
-# Database
+scipy
 sqlalchemy
-alembic
 psycopg2-binary
-
-# GenAI
 groq
-
-# Dashboard
 streamlit
 plotly
 pandas
-
-# Config & Env
 python-dotenv
 pyyaml
-pydantic
-
-# Utils
 loguru
-
-# Translation
 deep_translator
