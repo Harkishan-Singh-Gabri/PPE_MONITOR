@@ -8,7 +8,6 @@ import tempfile
 import streamlit as st
 from api.pipeline import PPEPipeline
 
-
 def show():
     st.markdown('<div class="page-title">📹 Live Detection</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">Real-time PPE and posture monitoring</div>',
@@ -48,11 +47,11 @@ def show():
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">⚡ Pipeline Metrics</div>',
                     unsafe_allow_html=True)
-        fps_box        = st.empty()
-        latency_box    = st.empty()
-        workers_box    = st.empty()
+        fps_box = st.empty()
+        latency_box = st.empty()
+        workers_box = st.empty()
         violations_box = st.empty()
-        falls_box      = st.empty()
+        falls_box = st.empty()
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
@@ -67,7 +66,7 @@ def show():
         bcol1, bcol2 = st.columns(2)
         start = bcol1.button("▶ Start",  type="primary",
                              width="stretch", disabled=(src is None))
-        stop  = bcol2.button("⏹ Stop",   width="stretch")
+        stop = bcol2.button("⏹ Stop",   width="stretch")
 
     if "running" not in st.session_state:
         st.session_state.running = False
@@ -100,13 +99,13 @@ def show():
 
             frame, alerts, metrics = pipeline.process_frame(frame)
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_box.image(rgb, channels="RGB", use_container_width="stretch")
+            frame_box.image(rgb, channels="RGB", width="stretch")
 
-            fps_box.metric("FPS",                metrics["fps"])
-            latency_box.metric("Latency",         f"{metrics['latency_ms']}ms")
-            workers_box.metric("Active Workers",  metrics["active_workers"])
-            violations_box.metric("Violations",   metrics["violations_today"])
-            falls_box.metric("Falls Detected",    metrics["falls_detected"])
+            fps_box.metric("FPS", metrics["fps"])
+            latency_box.metric("Latency", f"{metrics['latency_ms']}ms")
+            workers_box.metric("Active Workers", metrics["active_workers"])
+            violations_box.metric("Violations", metrics["violations_today"])
+            falls_box.metric("Falls Detected", metrics["falls_detected"])
 
             for a in alerts:
                 st.session_state.alert_log.insert(0, a)

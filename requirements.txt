@@ -24,3 +24,6 @@ pydantic
 
 # Utils
 loguru
+
+# Translation
+deep_translator

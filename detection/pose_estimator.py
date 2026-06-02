@@ -47,13 +47,13 @@ class PoseEstimator:
 
         for person_kps in results.keypoints:
             landmarks = {}
-            kp_data   = person_kps.data[0]
+            kp_data = person_kps.data[0]
 
             for name, idx in KEYPOINTS.items():
                 x, y, conf = kp_data[idx]
                 landmarks[name] = {
-                    "x":          float(x),
-                    "y":          float(y),
+                    "x": float(x),
+                    "y": float(y),
                     "visibility": float(conf)
                 }
 
@@ -71,11 +71,11 @@ class PoseEstimator:
 if __name__ == "__main__":
     from utils.video_stream import VideoStream
 
-    stream    = VideoStream()
+    stream = VideoStream()
     estimator = PoseEstimator()
 
     frame_count = 0
-    start_time  = time.time()
+    start_time = time.time()
 
     while True:
         frame = stream.read_frame()
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         frame_count += 1
         fps = frame_count / (time.time() - start_time)
 
-        cv2.putText(frame, f"FPS: {fps:.1f}",               (20, 40),
+        cv2.putText(frame, f"FPS: {fps:.1f}", (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255), 2)
         cv2.putText(frame, f"Persons: {len(all_persons)}", (20, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0,255,255), 2)

@@ -5,7 +5,6 @@ from utils.config_loader import load_config
 config   = load_config()
 LANGUAGE = config["alerts"]["language"]
 
-
 def translate(text: str) -> str:
     if LANGUAGE == "en":
         return text

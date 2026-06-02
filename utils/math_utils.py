@@ -2,7 +2,7 @@ import numpy as np
 
 def calculate_angle(a, b, c):
     """
-    Angle at point B formed by A→B→C.
+    Angle at point B formed by A->B->C.
     a, b, c are dicts with 'x' and 'y' keys.
     Returns angle in degrees.
     """
@@ -24,7 +24,6 @@ def midpoint(a, b):
         "x": (a["x"] + b["x"]) / 2,
         "y": (a["y"] + b["y"]) / 2,
     }
-
 
 def is_visible(*landmarks, threshold=0.5):
     """Check if all given landmarks are visible enough."""

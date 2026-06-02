@@ -21,7 +21,6 @@ def train():
     )
 
     log.info("Training complete")
-    log.info("Best weights saved at: models/ppe_training/weights/best.pt")
 
 if __name__=='__main__':
     train()

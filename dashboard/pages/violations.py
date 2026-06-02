@@ -6,7 +6,6 @@ import pandas as pd
 import streamlit as st
 from db.crud import get_violations
 
-
 def show():
     st.markdown('<div class="page-title">⚠️ Violations</div>', unsafe_allow_html=True)
     st.markdown('<div class="page-subtitle">Full violation log with filters</div>',
@@ -26,13 +25,13 @@ def show():
         return
 
     df = pd.DataFrame([{
-        "Worker ID":      v.worker_id,
-        "Violation":      v.violation_type,
-        "Severity":       v.severity,
-        "Zone":           v.zone,
-        "Confidence":     f"{v.confidence:.0%}" if v.confidence else "N/A",
-        "Timestamp":      v.timestamp.strftime("%Y-%m-%d %H:%M:%S") if v.timestamp else "",
-        "Snapshot":       v.snapshot_path or "",
+        "Worker ID": v.worker_id,
+        "Violation": v.violation_type,
+        "Severity": v.severity,
+        "Zone": v.zone,
+        "Confidence": f"{v.confidence:.0%}" if v.confidence else "N/A",
+        "Timestamp": v.timestamp.strftime("%Y-%m-%d %H:%M:%S") if v.timestamp else "",
+        "Snapshot": v.snapshot_path or "",
     } for v in violations])
 
     # filters
@@ -46,10 +45,10 @@ def show():
             default=["CRITICAL", "HIGH"]
         )
     with fc2:
-        workers    = ["All"] + sorted(df["Worker ID"].unique().tolist())
+        workers = ["All"] + sorted(df["Worker ID"].unique().tolist())
         wid_filter = st.selectbox("Worker", workers)
     with fc3:
-        vtypes     = ["All"] + sorted(df["Violation"].unique().tolist())
+        vtypes = ["All"] + sorted(df["Violation"].unique().tolist())
         vtype_filter = st.selectbox("Violation Type", vtypes)
 
     st.markdown('</div>', unsafe_allow_html=True)
@@ -76,8 +75,8 @@ def show():
     def severity_color(val):
         colors = {
             "CRITICAL": "background-color:#fef2f2; color:#dc2626; font-weight:600",
-            "HIGH":     "background-color:#fff7ed; color:#ea580c; font-weight:600",
-            "MEDIUM":   "background-color:#fffbeb; color:#d97706; font-weight:600",
+            "HIGH": "background-color:#fff7ed; color:#ea580c; font-weight:600",
+            "MEDIUM": "background-color:#fffbeb; color:#d97706; font-weight:600",
         }
         return colors.get(val, "")
 
@@ -97,8 +96,8 @@ def show():
     # export
     csv = filtered.to_csv(index=False)
     st.download_button(
-        label     = "⬇️ Export CSV",
-        data      = csv,
+        label= "⬇️ Export CSV",
+        data = csv,
         file_name = "violations_export.csv",
-        mime      = "text/csv",
+        mime = "text/csv",
     )

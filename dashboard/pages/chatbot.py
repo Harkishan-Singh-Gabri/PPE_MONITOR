@@ -5,7 +5,6 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 import streamlit as st
 from genai.chatbot import ask
 
-
 SUGGESTED = [
     "How many violations happened today?",
     "Which worker had the most violations?",
@@ -14,7 +13,6 @@ SUGGESTED = [
     "Show me the most common violation types",
     "Which zone had the most incidents?",
 ]
-
 
 def show():
     st.markdown('<div class="page-title">🤖 Safety Chatbot</div>', unsafe_allow_html=True)
@@ -36,7 +34,7 @@ def show():
                     st.session_state.chat_history = []
                 with st.spinner("Querying..."):
                     answer = ask(q, st.session_state.chat_history)
-                st.session_state.chat_history.append({"role": "user",      "content": q})
+                st.session_state.chat_history.append({"role": "user", "content": q})
                 st.session_state.chat_history.append({"role": "assistant", "content": answer})
                 st.rerun()
 
@@ -95,6 +93,6 @@ def show():
         if question:
             with st.spinner("Querying safety database..."):
                 answer = ask(question, st.session_state.chat_history)
-            st.session_state.chat_history.append({"role": "user",      "content": question})
+            st.session_state.chat_history.append({"role": "user", "content": question})
             st.session_state.chat_history.append({"role": "assistant", "content": answer})
             st.rerun()

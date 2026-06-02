@@ -5,7 +5,6 @@ from utils.logger import log
 config    = load_config()
 PERSIST_N = config["detection"]["violation_persistence_frames"]
 
-
 class ViolationTracker:
     """
     Only confirms a violation after N consecutive frames.
@@ -17,7 +16,7 @@ class ViolationTracker:
 
     def update(self, worker_id, detections):
         active_keys = set()
-        confirmed   = []
+        confirmed = []
 
         for d in detections:
             if not d.get("is_violation") and not d.get("is_critical"):

@@ -3,18 +3,18 @@ from utils.config_loader import load_config
 from utils.logger import log
 from utils.math_utils import calculate_angle, midpoint, is_visible
 
-config      = load_config()
+config = load_config()
 fall_config = config["fall_detection"]
 post_config = config["posture"]
 
 RISK_COLORS = {
-    "LOW":     (0, 255, 0),
-    "MEDIUM":  (0, 165, 255),
-    "HIGH":    (0, 0, 255),
+    "LOW": (0, 255, 0),
+    "MEDIUM": (0, 165, 255),
+    "HIGH": (0, 0, 255),
     "UNKNOWN": (128, 128, 128),
 }
 
-_logged = False   # log init only once across all instances
+_logged = False 
 
 
 class PostureAnalyzer:
@@ -48,8 +48,8 @@ class PostureAnalyzer:
 
         knee_angle = None
         if is_visible(
-            landmarks.get("left_hip",   {}),
-            landmarks.get("left_knee",  {}),
+            landmarks.get("left_hip", {}),
+            landmarks.get("left_knee", {}),
             landmarks.get("left_ankle", {})
         ):
             knee_angle = calculate_angle(
@@ -70,27 +70,27 @@ class PostureAnalyzer:
         if knee_angle and knee_angle < post_config["knee_angle_threshold"]: risk_score += 1
 
         risk_level = (
-            "HIGH"   if risk_score >= 3 else
+            "HIGH" if risk_score >= 3 else
             "MEDIUM" if risk_score == 2 else
             "LOW"
         )
 
-        # --- fall detection ---
+        # fall detection
         fall_detected = False
-        hip_y         = mid_hip["y"]
+        hip_y = mid_hip["y"]
         self.hip_y_history.append(hip_y)
 
         if len(self.hip_y_history) == 10 and self.fall_cooldown == 0:
-            drop          = self.hip_y_history[-1] - self.hip_y_history[0]
-            velocity      = drop / 10
-            is_fast_drop  = velocity > fall_config["velocity_threshold"] * 100
-            shoulder_y    = mid_shoulder["y"]
+            drop = self.hip_y_history[-1] - self.hip_y_history[0]
+            velocity = drop / 10
+            is_fast_drop = velocity > fall_config["velocity_threshold"] * 100
+            shoulder_y = mid_shoulder["y"]
             is_horizontal = abs(shoulder_y - hip_y) < fall_config["horizontal_threshold"]
 
             if is_fast_drop and is_horizontal:
-                fall_detected      = True
+                fall_detected = True
                 self.fall_cooldown = 30
-                log.critical("🚨 FALL DETECTED via posture analyzer")
+                log.critical("FALL DETECTED via posture analyzer")
 
         if self.fall_cooldown > 0:
             self.fall_cooldown -= 1

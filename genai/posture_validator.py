@@ -10,9 +10,9 @@ client = Groq(api_key=get_env("GROQ_API_KEY"))
 MODEL  = "meta-llama/llama-4-scout-17b-16e-instruct"
 
 _validation_results = {}    # {worker_id: "PENDING"|"FALL_CONFIRMED"|"FALSE_ALARM"}
-_pending            = set()
-_last_groq_call     = 0
-GROQ_MIN_INTERVAL   = 0.5
+_pending = set()
+_last_groq_call = 0
+GROQ_MIN_INTERVAL = 0.5
 
 
 def _frame_to_base64(frame) -> str:
@@ -79,11 +79,11 @@ def validate_async(angles: dict, worker_id: str, frame=None):
             prompt = _build_prompt(worker_id, angles)
 
             if frame_copy is not None:
-                b64      = _frame_to_base64(frame_copy)
+                b64 = _frame_to_base64(frame_copy)
                 messages = [{
                     "role": "user",
                     "content": [
-                        {"type": "text",      "text": prompt},
+                        {"type": "text", "text": prompt},
                         {"type": "image_url", "image_url": {
                             "url": f"data:image/jpeg;base64,{b64}"
                         }}
@@ -93,8 +93,8 @@ def validate_async(angles: dict, worker_id: str, frame=None):
                 messages = [{"role": "user", "content": prompt}]
 
             response = client.chat.completions.create(
-                model      = MODEL,
-                messages   = messages,
+                model = MODEL,
+                messages = messages,
                 max_tokens = 5,
             )
 
@@ -119,9 +119,9 @@ def validate_async(angles: dict, worker_id: str, frame=None):
 def get_validation_result(worker_id: str) -> str:
     """
     Returns:
-      None             — not yet triggered
-      "PENDING"        — Groq thinking
+      None — not yet triggered
+      "PENDING" — Groq thinking
       "FALL_CONFIRMED" — real fall, alert
-      "FALSE_ALARM"    — suppress
+      "FALSE_ALARM" — suppress
     """
     return _validation_results.get(worker_id, None)

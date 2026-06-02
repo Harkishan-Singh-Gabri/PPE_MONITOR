@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 from db.crud import get_violations, get_alerts, get_compliance_rate
 from genai.chatbot import ask
 
-
 def _metric_card(label, value, delta=None, delta_up=True, icon=""):
     delta_html = ""
     if delta:
@@ -37,13 +36,13 @@ def _violations_over_time_chart(violations):
     } for v in violations])
 
     df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df["hour"]      = df["timestamp"].dt.floor("h")
-    timeline        = df.groupby("hour").size().reset_index(name="count")
+    df["hour"] = df["timestamp"].dt.floor("h")
+    timeline = df.groupby("hour").size().reset_index(name="count")
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x    = timeline["hour"],
-        y    = timeline["count"],
+        x = timeline["hour"],
+        y = timeline["count"],
         mode = "lines+markers",
         line = dict(color="#6366f1", width=2.5, shape="spline"),
         fill = "tozeroy",
@@ -55,21 +54,21 @@ def _violations_over_time_chart(violations):
     fig.update_layout(
         paper_bgcolor = "white",
         plot_bgcolor  = "white",
-        margin        = dict(l=10, r=10, t=10, b=10),
-        height        = 200,
-        showlegend    = False,
+        margin = dict(l=10, r=10, t=10, b=10),
+        height = 200,
+        showlegend = False,
         xaxis = dict(
-            showgrid     = False,
-            tickfont     = dict(size=10, color="#94a3b8"),
-            tickformat   = "%b %d",
-            showline     = False,
+            showgrid = False,
+            tickfont = dict(size=10, color="#94a3b8"),
+            tickformat = "%b %d",
+            showline = False,
         ),
         yaxis = dict(
-            showgrid    = True,
-            gridcolor   = "#f1f5f9",
-            tickfont    = dict(size=10, color="#94a3b8"),
-            showline    = False,
-            zeroline    = False,
+            showgrid = True,
+            gridcolor = "#f1f5f9",
+            tickfont = dict(size=10, color="#94a3b8"),
+            showline = False,
+            zeroline = False,
         ),
     )
     return fig
@@ -84,13 +83,13 @@ def _top_violations(violations):
     from collections import Counter
     counts = Counter(v.violation_type for v in violations)
     icons  = {
-        "NO-Hardhat":     "⛑️",
+        "NO-Hardhat": "⛑️",
         "NO-Safety Vest": "🦺",
-        "NO-Gloves":      "🧤",
-        "NO-Goggles":     "🥽",
-        "NO-Mask":        "😷",
-        "Fall-Detected":  "🚨",
-        "posture_HIGH":   "⚠️",
+        "NO-Gloves": "🧤",
+        "NO-Goggles": "🥽",
+        "NO-Mask": "😷",
+        "Fall-Detected": "🚨",
+        "posture_HIGH": "⚠️",
     }
 
     for vtype, count in counts.most_common(5):
@@ -110,8 +109,8 @@ def _recent_alerts(alerts):
         return
 
     for a in alerts[:6]:
-        sev  = a.severity.upper()
-        cls  = f"badge-{sev.lower()}"
+        sev = a.severity.upper()
+        cls = f"badge-{sev.lower()}"
         time_str = a.timestamp.strftime("%H:%M") if a.timestamp else ""
         st.markdown(f"""
         <div class="alert-row">
@@ -123,7 +122,7 @@ def _recent_alerts(alerts):
 
 
 def show():
-    # ── Header ────────────────────────────────────────────────────────────────
+    # Header
     hour = datetime.now().hour
     greeting = "Good morning" if hour < 12 else "Good afternoon" if hour < 17 else "Good evening"
 
@@ -132,16 +131,16 @@ def show():
     <div class="page-subtitle">Here's what's happening with safety today — {datetime.now().strftime("%B %d, %Y")}</div>
     """, unsafe_allow_html=True)
 
-    # ── Fetch Data ────────────────────────────────────────────────────────────
+    # Fetch Data
     violations = get_violations(limit=500)
-    alerts     = get_alerts(limit=100)
+    alerts = get_alerts(limit=100)
     compliance = get_compliance_rate()
 
-    total    = len(violations)
+    total = len(violations)
     critical = sum(1 for v in violations if v.severity == "CRITICAL")
-    high     = sum(1 for v in violations if v.severity == "HIGH")
+    high = sum(1 for v in violations if v.severity == "HIGH")
 
-    # ── Metric Cards + Chatbot (side by side) ────────────────────────────────
+    # Metric Cards + Chatbot (side by side)
     left_col, chat_col = st.columns([3, 1.2])
 
     with left_col:
@@ -150,11 +149,11 @@ def show():
         with c1:
             _metric_card("Total Violations", f"{total:,}", "12.5%", True,  "🛡️")
         with c2:
-            _metric_card("Critical",         f"{critical:,}", "8.3%", True,  "🚨")
+            _metric_card("Critical", f"{critical:,}", "8.3%", True,  "🚨")
         with c3:
-            _metric_card("High Severity",    f"{high:,}", "5.6%", True,  "⚠️")
+            _metric_card("High Severity", f"{high:,}", "5.6%", True,  "⚠️")
         with c4:
-            _metric_card("Compliance Rate",  f"{compliance}%", "4.7%", False, "✅")
+            _metric_card("Compliance Rate", f"{compliance}%", "4.7%", False, "✅")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -186,7 +185,7 @@ def show():
         _recent_alerts(alerts)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ── Embedded Chatbot ──────────────────────────────────────────────────────
+    # Embedded Chatbot
     with chat_col:
         st.markdown("""
         <div class="section-card" style="height: calc(100% - 1rem);">

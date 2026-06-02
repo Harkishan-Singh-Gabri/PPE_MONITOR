@@ -11,7 +11,6 @@ class VideoStream:
         self.fps_limit = config["camera"]["fps_limit"]
         self.resolution = tuple(config["camera"]["resolution"])
 
-        # source can be 0 (webcam) or a file path like "test.mp4"
         self.cap = cv2.VideoCapture(source)
 
         if not self.cap.isOpened():
@@ -58,11 +57,11 @@ if __name__ == "__main__":
         cv2.putText(
             frame,
             f"FPS: {fps:.1f}",
-            (20, 40),                    # position
+            (20, 40),             
             cv2.FONT_HERSHEY_SIMPLEX,
-            1,                           # font scale
-            (0, 255, 0),                 # green
-            2                            # thickness
+            1,                  
+            (0, 255, 0),          
+            2        
         )
 
         cv2.imshow("PPE Monitor", frame)

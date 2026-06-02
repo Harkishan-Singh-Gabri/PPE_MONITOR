@@ -13,11 +13,11 @@ PostgreSQL Database Schema:
 
 TABLE: violations
   - id (int)
-  - worker_id (text)        e.g. 'W-01', 'W-02'
-  - violation_type (text)   e.g. 'NO-Hardhat', 'Fall-Detected', 'NO-Safety Vest'
-  - severity (text)         'CRITICAL' or 'HIGH'
-  - zone (text)             e.g. 'general'
-  - confidence (float)      0.0 to 1.0
+  - worker_id (text) e.g. 'W-01', 'W-02'
+  - violation_type (text) e.g. 'NO-Hardhat', 'Fall-Detected', 'NO-Safety Vest'
+  - severity (text) 'CRITICAL' or 'HIGH'
+  - zone (text) e.g. 'general'
+  - confidence (float) 0.0 to 1.0
   - timestamp (timestamp)
   - snapshot_path (text)
 
@@ -25,7 +25,7 @@ TABLE: alerts
   - id (int)
   - worker_id (text)
   - message (text)
-  - severity (text)         'CRITICAL' or 'HIGH'
+  - severity (text) 'CRITICAL' or 'HIGH'
   - violation_type (text)
   - timestamp (timestamp)
   - resolved (boolean)
@@ -105,10 +105,10 @@ Question: {question}
 SQL:"""
 
     response = client.chat.completions.create(
-        model      = MODEL,
-        messages   = [{"role": "user", "content": prompt}],
+        model = MODEL,
+        messages = [{"role": "user", "content": prompt}],
         max_tokens = 300,
-        temperature = 0.1,    # low temp = more consistent SQL
+        temperature = 0.1,
     )
     sql = response.choices[0].message.content.strip()
 
@@ -154,8 +154,8 @@ Instructions:
 - Tone: professional, direct, helpful"""
 
     response = client.chat.completions.create(
-        model      = MODEL,
-        messages   = [{"role": "user", "content": prompt}],
+        model = MODEL,
+        messages = [{"role": "user", "content": prompt}],
         max_tokens = 250,
     )
     return response.choices[0].message.content.strip()
@@ -181,15 +181,15 @@ def ask(question: str, chat_history: list = []) -> str:
 Answer this question helpfully and concisely: {question}
 Keep response under 3 sentences. Be practical and specific to construction safety."""
             response = client.chat.completions.create(
-                model    = MODEL,
+                model = MODEL,
                 messages = [{"role": "user", "content": prompt}],
                 max_tokens = 200,
             )
             return response.choices[0].message.content.strip()
 
-        sql     = _generate_sql(question, chat_history)
+        sql = _generate_sql(question, chat_history)
         results = _run_sql(sql)
-        answer  = _summarize(question, results)
+        answer = _summarize(question, results)
         log.info(f"Chatbot Q: '{question}' | Rows: {len(results)}")
         return answer
 
@@ -216,5 +216,5 @@ if __name__ == "__main__":
         print(f"\nQ: {q}")
         a = ask(q, history)
         print(f"A: {a}")
-        history.append({"role": "user",      "content": q})
+        history.append({"role": "user", "content": q})
         history.append({"role": "assistant", "content": a})

@@ -11,15 +11,12 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine       = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
 
-
 def init_db():
     Base.metadata.create_all(bind=engine)
     log.info("Database tables created/verified")
 
-
 def get_session():
     return SessionLocal()
-
 
 if __name__ == "__main__":
     init_db()

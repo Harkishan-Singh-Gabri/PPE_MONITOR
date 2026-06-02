@@ -1,21 +1,20 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from db.database import get_session
 from db.models import Worker, Violation, Alert
 from utils.logger import log
-
 
 def log_violation(worker_id, violation_type, severity,
                   confidence=None, zone="general", snapshot_path=None):
     session = get_session()
     try:
         v = Violation(
-            worker_id      = worker_id,
+            worker_id = worker_id,
             violation_type = violation_type,
-            severity       = severity,
-            confidence     = confidence,
-            zone           = zone,
-            snapshot_path  = snapshot_path,
-            timestamp      = datetime.utcnow()
+            severity = severity,
+            confidence = confidence,
+            zone = zone,
+            snapshot_path = snapshot_path,
+            timestamp = datetime.now(timezone.utc)
         )
         session.add(v)
         session.commit()
@@ -26,16 +25,15 @@ def log_violation(worker_id, violation_type, severity,
     finally:
         session.close()
 
-
 def log_alert(worker_id, message, severity, violation_type):
     session = get_session()
     try:
         a = Alert(
-            worker_id      = worker_id,
-            message        = message,
-            severity       = severity,
+            worker_id = worker_id,
+            message = message,
+            severity = severity,
             violation_type = violation_type,
-            timestamp      = datetime.utcnow()
+            timestamp = datetime.now(timezone.utc)
         )
         session.add(a)
         session.commit()
@@ -51,7 +49,7 @@ def update_worker(worker_id):
     try:
         worker = session.query(Worker).filter_by(worker_id=worker_id).first()
         if worker:
-            worker.last_seen = datetime.utcnow()
+            worker.last_seen = datetime.now(timezone.utc)
         else:
             session.add(Worker(worker_id=worker_id))
         session.commit()
@@ -86,7 +84,7 @@ def get_compliance_rate():
     session = get_session()
     try:
         from sqlalchemy import func, cast, Date
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
 
         total_workers = session.query(
             func.count(func.distinct(Worker.worker_id))

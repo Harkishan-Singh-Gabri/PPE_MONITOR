@@ -5,15 +5,18 @@ alerts:
   - Fall-Detected
   - NO-Hardhat
   language: en
+
 camera:
   fps_limit: 30
   resolution:
   - 1280
   - 720
-  source: C:\Users\HARKIS~1\AppData\Local\Temp\tmpr1mffwjy.mp4
+  source: test_videos
+
 database:
   echo: false
   pool_size: 5
+
 detection:
   classes:
     critical:
@@ -42,23 +45,29 @@ detection:
   model_path: models/best_ppe.pt
   violation_confidence_threshold: 0.65
   violation_persistence_frames: 5
+
 fall_detection:
   horizontal_threshold: 60
   velocity_threshold: 0.35
+
 pipeline:
   pose_frame_skip: 3
   yolo_frame_skip: 2
+
 pose:
   min_detection_confidence: 0.5
   min_tracking_confidence: 0.5
+
 posture:
   back_angle_threshold: 60
   knee_angle_threshold: 30
   neck_angle_threshold: 20
+
 reporting:
-  company_name: Your Company Name
+  company_name: AYZ
   output_dir: reports/
+
 tracker:
-  max_age: 90
+  max_age: 200
   min_hits: 1
   minimum_matching_threshold: 0.15

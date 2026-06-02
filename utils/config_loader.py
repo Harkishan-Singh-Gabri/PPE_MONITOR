@@ -3,7 +3,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # loads .env into environment
+load_dotenv()
 
 def load_config() -> dict:
     config_path = Path(__file__).parent.parent / "config" / "settings.yaml"

@@ -17,9 +17,9 @@ def show():
     violations = get_violations(limit=500)
     compliance = get_compliance_rate()
 
-    total    = len(violations)
+    total = len(violations)
     critical = sum(1 for v in violations if v.severity == "CRITICAL")
-    high     = sum(1 for v in violations if v.severity == "HIGH")
+    high = sum(1 for v in violations if v.severity == "HIGH")
 
     # metric cards
     c1, c2, c3, c4 = st.columns(4)
@@ -67,7 +67,7 @@ def show():
         st.markdown('<div class="section-title">Violations Over Time</div>',
                     unsafe_allow_html=True)
         df["hour"] = df["timestamp"].dt.floor("h")
-        timeline   = df.groupby(["hour","severity"]).size().reset_index(name="count")
+        timeline = df.groupby(["hour","severity"]).size().reset_index(name="count")
         fig = px.line(
             timeline, x="hour", y="count", color="severity",
             color_discrete_map={"CRITICAL": "#ef4444", "HIGH": "#f97316"},
@@ -89,7 +89,7 @@ def show():
         st.markdown('<div class="section-card">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">By Violation Type</div>',
                     unsafe_allow_html=True)
-        type_counts         = df["violation_type"].value_counts().reset_index()
+        type_counts = df["violation_type"].value_counts().reset_index()
         type_counts.columns = ["Violation", "Count"]
         fig2 = px.bar(
             type_counts.head(6), x="Count", y="Violation",
