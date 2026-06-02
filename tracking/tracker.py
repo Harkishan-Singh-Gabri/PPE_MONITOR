@@ -1,113 +1,115 @@
 import numpy as np
-import supervision as sv
+from scipy.optimize import linear_sum_assignment
 from utils.logger import log
 from utils.config_loader import load_config
 
-config       = load_config()
+config = load_config()
 track_config = config["tracker"]
 
-WORKER_PROXY_CLASSES = ["Person", "Hardhat", "NO-Hardhat"]
+
+class Track:
+    def __init__(self, track_id, bbox):
+        self.track_id = track_id
+        self.bbox = bbox
+        self.centroid = self._centroid(bbox)
+        self.lost = 0   
+
+    def update(self, bbox):
+        self.bbox = bbox
+        self.centroid = self._centroid(bbox)
+        self.lost = 0
+
+    def mark_lost(self):
+        self.lost += 1
+
+    @staticmethod
+    def _centroid(bbox):
+        x1, y1, x2, y2 = bbox
+        return np.array([(x1+x2)/2, (y1+y2)/2])
 
 
 class WorkerTracker:
+    """
+    Centroid-based tracker — much more stable than IoU for small helmet boxes.
+    Matches detections to existing tracks using Euclidean distance between centers.
+    """
     def __init__(self):
-        self.tracker = sv.ByteTrack(
-            lost_track_buffer          = track_config["max_age"],
-            minimum_matching_threshold = track_config["minimum_matching_threshold"],
-            minimum_consecutive_frames = track_config["min_hits"],
-        )
-        log.info("ByteTrack worker tracker initialized")
+        self.tracks     = {}    
+        self.next_id    = 1
+        self.max_lost   = track_config["max_age"]
+        self.max_dist   = 120    # max pixel distance to match same person
+        log.info("Centroid tracker initialized")
 
     def update(self, detections):
-        """
-        Takes detections list.
-        Returns tracked workers with persistent IDs.
-        Always call every frame — even on skipped YOLO frames.
-        """
         if not detections:
-            # still update tracker with empty detections
-            # keeps existing tracks alive during occlusion
-            empty = sv.Detections.empty()
-            tracked = self.tracker.update_with_detections(empty)
-            results = []
-            for i, tracker_id in enumerate(tracked.tracker_id):
-                results.append({
-                    "worker_id":  f"W-{int(tracker_id):02d}",
-                    "bbox":       tuple(map(int, tracked.xyxy[i])),
-                    "confidence": float(tracked.confidence[i]),
-                })
-            return results
+            # mark all existing tracks as lost
+            for t in self.tracks.values():
+                t.mark_lost()
+            self._remove_stale()
+            return self._get_results()
 
-        xyxy       = np.array([d["bbox"] for d in detections], dtype=float)
-        confidence = np.array([d["confidence"] for d in detections], dtype=float)
-        class_ids  = np.zeros(len(detections), dtype=int)
+        det_centroids = np.array([
+            [(d["bbox"][0]+d["bbox"][2])/2,
+             (d["bbox"][1]+d["bbox"][3])/2]
+            for d in detections
+        ])
 
-        sv_detections = sv.Detections(
-            xyxy       = xyxy,
-            confidence = confidence,
-            class_id   = class_ids,
-        )
+        if not self.tracks:
+            # no existing tracks — create new for all detections
+            for i, d in enumerate(detections):
+                self.tracks[self.next_id] = Track(self.next_id, d["bbox"])
+                self.next_id += 1
+            return self._get_results()
 
-        tracked = self.tracker.update_with_detections(sv_detections)
+        # build cost matrix — Euclidean distance between each track and detection
+        track_ids = list(self.tracks.keys())
+        track_cents = np.array([self.tracks[t].centroid for t in track_ids])
 
-        results = []
-        for i, tracker_id in enumerate(tracked.tracker_id):
-            results.append({
-                "worker_id":  f"W-{int(tracker_id):02d}",
-                "bbox":       tuple(map(int, tracked.xyxy[i])),
-                "confidence": float(tracked.confidence[i]),
-            })
+        cost_matrix = np.linalg.norm(
+            track_cents[:, np.newaxis] - det_centroids[np.newaxis, :],
+            axis=2
+        )  # shape: (num_tracks, num_detections)
 
-        return results
+        # Hungarian algorithm — optimal assignment
+        row_ind, col_ind = linear_sum_assignment(cost_matrix)
 
+        matched_tracks = set()
+        matched_dets = set()
 
-if __name__ == "__main__":
-    import cv2
-    import time
-    from utils.video_stream import VideoStream
-    from detection.ppe_detector import PPEDetector
+        for r, c in zip(row_ind, col_ind):
+            if cost_matrix[r, c] < self.max_dist:
+                # distance within threshold — same person
+                self.tracks[track_ids[r]].update(detections[c]["bbox"])
+                matched_tracks.add(track_ids[r])
+                matched_dets.add(c)
 
-    stream   = VideoStream()
-    detector = PPEDetector()
-    tracker  = WorkerTracker()
+        # unmatched tracks — mark lost
+        for tid in track_ids:
+            if tid not in matched_tracks:
+                self.tracks[tid].mark_lost()
 
-    frame_count = 0
-    start_time  = time.time()
+        # unmatched detections — new person, create new track
+        for i, d in enumerate(detections):
+            if i not in matched_dets:
+                self.tracks[self.next_id] = Track(self.next_id, d["bbox"])
+                self.next_id += 1
 
-    while True:
-        frame = stream.read_frame()
-        if frame is None:
-            break
+        self._remove_stale()
+        return self._get_results()
 
-        frame, detections, _ = detector.detect(frame)
+    def _remove_stale(self):
+        """Remove tracks that have been lost too long."""
+        stale = [tid for tid, t in self.tracks.items() if t.lost > self.max_lost]
+        for tid in stale:
+            del self.tracks[tid]
 
-        proxy_detections = [d for d in detections
-                            if d["class"] in WORKER_PROXY_CLASSES]
-        tracked_workers  = tracker.update(proxy_detections)
-
-        for d in detections:
-            if d["class"] not in WORKER_PROXY_CLASSES:
-                x1,y1,x2,y2 = d["bbox"]
-                color = (0,255,0) if not d["is_violation"] else (0,0,255)
-                cv2.rectangle(frame, (x1,y1), (x2,y2), color, 1)
-                cv2.putText(frame, d["class"], (x1, y1-5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1)
-
-        for w in tracked_workers:
-            x1,y1,x2,y2 = w["bbox"]
-            cv2.rectangle(frame, (x1,y1), (x2,y2), (255,165,0), 2)
-            cv2.putText(frame, w["worker_id"], (x1, y1-10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,165,0), 2)
-
-        frame_count += 1
-        fps = frame_count / (time.time() - start_time)
-        cv2.putText(frame, f"FPS: {fps:.1f}",                   (20,40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-        cv2.putText(frame, f"Workers: {len(tracked_workers)}", (20,70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,165,0), 2)
-
-        cv2.imshow("Worker Tracking", frame)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
-
-    stream.release()
+    def _get_results(self):
+        return [
+            {
+                "worker_id": f"W-{t.track_id:02d}",
+                "bbox": t.bbox,
+                "confidence": 1.0,
+            }
+            for t in self.tracks.values()
+            if t.lost == 0   # only return currently visible tracks
+        ]

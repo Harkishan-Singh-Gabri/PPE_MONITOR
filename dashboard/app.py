@@ -6,7 +6,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="SafeGuard — PPE Monitor",
-    page_icon="🦺",
+    page_icon="SG",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -17,12 +17,10 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 
-/* hide streamlit default elements including auto page list */
 #MainMenu, footer, header { visibility: hidden; }
 .stDeployButton { display: none; }
 [data-testid="stSidebarNav"] { display: none; }
 
-/* sidebar dark */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
     border-right: 1px solid #334155;
@@ -34,7 +32,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     padding: 0.4rem 0;
 }
 
-/* main content LIGHT */
 .main { background: #f8fafc; }
 .main .block-container {
     background: #f8fafc;
@@ -42,7 +39,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     max-width: 100%;
 }
 
-/* metric cards */
 .metric-card {
     background: white;
     border-radius: 16px;
@@ -59,7 +55,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .delta-up   { color: #ef4444; }
 .delta-down { color: #22c55e; }
 
-/* section cards */
 .section-card {
     background: white;
     border-radius: 16px;
@@ -70,7 +65,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 }
 .section-title { font-size: 1rem; font-weight: 600; color: #0f172a; margin-bottom: 1rem; }
 
-/* badges */
 .badge {
     display: inline-block; padding: 0.2rem 0.55rem;
     border-radius: 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em;
@@ -79,7 +73,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .badge-high     { background:#fff7ed; color:#ea580c; border:1px solid #fed7aa; }
 .badge-medium   { background:#fffbeb; color:#d97706; border:1px solid #fde68a; }
 
-/* alert rows */
 .alert-row {
     display:flex; align-items:center; gap:0.75rem;
     padding:0.7rem 0; border-bottom:1px solid #f1f5f9;
@@ -88,7 +81,6 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .alert-msg  { font-size:0.85rem; color:#334155; flex:1; }
 .alert-time { font-size:0.75rem; color:#94a3b8; font-family:'DM Mono',monospace; }
 
-/* top violation rows */
 .viol-row {
     display:flex; align-items:center; justify-content:space-between;
     padding:0.6rem 0; border-bottom:1px solid #f1f5f9;
@@ -97,11 +89,9 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .viol-row:last-child { border-bottom:none; }
 .viol-count { font-weight:700; color:#0f172a; font-family:'DM Mono',monospace; }
 
-/* page titles */
 .page-title    { font-size:1.6rem; font-weight:700; color:#0f172a; margin-bottom:0.2rem; }
 .page-subtitle { font-size:0.9rem; color:#64748b; margin-bottom:1.2rem; }
 
-/* chat bubbles */
 .chat-user {
     background:#6366f1; color:white; padding:0.6rem 0.9rem;
     border-radius:12px 12px 2px 12px; font-size:0.85rem;
@@ -115,15 +105,17 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div style="padding:1rem 0.5rem 1.5rem;">
-        <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
-            <span style="font-size:1.6rem;">🦺</span>
-            <span style="font-size:1.15rem;font-weight:700;color:#f8fafc;">SafeGuard</span>
+        <div style="margin-bottom:0.3rem;">
+            <span style="font-size:1.4rem; font-weight:800; color:#f8fafc;
+                         letter-spacing:-0.03em;">
+                Safe<span style="color:#6366f1;">Guard</span>
+            </span>
         </div>
-        <div style="font-size:0.72rem;color:#64748b;padding-left:0.2rem;">
+        <div style="font-size:0.72rem; color:#64748b; padding-left:0.1rem;
+                    letter-spacing:0.08em; text-transform:uppercase;">
             AI Workplace Safety Monitor
         </div>
     </div>
@@ -159,7 +151,6 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-# ── Routing ───────────────────────────────────────────────────────────────────
 if "🏠" in page:
     from dashboard.pages.home import show
     show()

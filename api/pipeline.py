@@ -28,24 +28,25 @@ RISK_COLORS = {
     "UNKNOWN": (128, 128, 128),
 }
 
+
 class PPEPipeline:
     def __init__(self):
         log.info("Initializing PPE Pipeline...")
-        self.stream = VideoStream()
+        self.stream   = VideoStream()
         self.detector = PPEDetector()
-        self.pose = PoseEstimator()
-        self.tracker = WorkerTracker()
-        self.alert = AlertEngine()
+        self.pose     = PoseEstimator()
+        self.tracker  = WorkerTracker()
+        self.alert    = AlertEngine()
         self.vtracker = ViolationTracker()
 
-        self.frame_count = 0
-        self.start_time = time.time()
-        self.violation_count = 0
-        self.fall_count = 0
+        self.frame_count      = 0
+        self.start_time       = time.time()
+        self.violation_count  = 0
+        self.fall_count       = 0
         self.worker_analyzers = {}
 
-        self.last_detections = []
-        self.last_persons = []
+        self.last_detections     = []
+        self.last_persons        = []
         self.last_worker_posture = {}
 
         log.info("Pipeline ready")
@@ -65,14 +66,41 @@ class PPEPipeline:
 
         for w in tracked_workers:
             wx1, wy1, wx2, wy2 = w["bbox"]
-            wcx  = (wx1 + wx2) / 2
-            wcy  = (wy1 + wy2) / 2
+            wcx = (wx1 + wx2) / 2
+            wcy = (wy1 + wy2) / 2
             dist = np.sqrt((det_cx - wcx)**2 + (det_cy - wcy)**2)
             if dist < nearest_dist:
                 nearest_dist = dist
                 nearest_id = w["worker_id"]
 
         return nearest_id
+
+    def _expand_bbox(self, bbox, frame_shape, scale=2.0):
+        """
+        Expand a small helmet bbox by scale factor around its center.
+        Bigger box = better IoU overlap across frames = stable IDs.
+        """
+        x1, y1, x2, y2 = bbox
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
+        w = (x2 - x1) * scale
+        h = (y2 - y1) * scale
+        return (
+            max(0, int(cx - w / 2)),
+            max(0, int(cy - h / 2)),
+            min(frame_shape[1], int(cx + w / 2)),
+            min(frame_shape[0], int(cy + h / 2)),
+        )
+
+    def _expand_to_body(self, bbox, frame_shape):
+        """
+        Expand head/helmet bbox to approximate full body.
+        Extends downward by 3.5x head height for display.
+        """
+        x1, y1, x2, y2 = bbox
+        h = y2 - y1
+        body_y2 = min(y2 + int(h * 3.5), frame_shape[0])
+        return x1, y1, x2, body_y2
 
     def _save_snapshot(self, frame, worker_id, violation_type):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -86,7 +114,7 @@ class PPEPipeline:
 
     def process_frame(self, frame):
 
-        # YOLO PPE Detection (every N frames)
+        # YOLO PPE Detection
         if self.frame_count % YOLO_SKIP == 0:
             frame, detections, latency_ms = self.detector.detect(frame)
             self.last_detections = detections
@@ -94,14 +122,21 @@ class PPEPipeline:
             detections = self.last_detections
             latency_ms = 0
 
-        # Worker Tracking (EVERY frame — keeps IDs stable)
+        # expand proxy bboxes before tracking — improves IoU matching
         proxy = [d for d in detections if d["class"] in WORKER_PROXY_CLASSES]
-        tracked_workers = self.tracker.update(proxy)
+        expanded_proxy = []
+        for d in proxy:
+            expanded = dict(d)
+            expanded["bbox"] = self._expand_bbox(d["bbox"], frame.shape, scale=2.0)
+            expanded_proxy.append(expanded)
+
+        # Worker Tracking — every frame with expanded boxes
+        tracked_workers = self.tracker.update(expanded_proxy)
 
         for w in tracked_workers:
             self._async_db_write(update_worker, w["worker_id"])
 
-        # Pose Estimation (every M frames)
+        # Pose Estimation
         if self.frame_count % POSE_SKIP == 0:
             frame, all_persons = self.pose.estimate(frame)
             self.last_persons = all_persons
@@ -109,7 +144,7 @@ class PPEPipeline:
             worker_posture = {}
             for i, landmarks in enumerate(all_persons):
                 if i < len(tracked_workers):
-                    wid = tracked_workers[i]["worker_id"]
+                    wid      = tracked_workers[i]["worker_id"]
                     analyzer = self._get_worker_analyzer(wid)
                     risk_level, risk_score, angles, fall_detected = analyzer.analyze(landmarks)
                     worker_posture[wid] = {
@@ -135,8 +170,8 @@ class PPEPipeline:
 
             confirmed_detections = self.vtracker.update(wid, raw_detections)
 
-            posture_data = worker_posture.get(wid, {})
-            risk_level = posture_data.get("risk_level", "UNKNOWN")
+            posture_data  = worker_posture.get(wid, {})
+            risk_level    = posture_data.get("risk_level", "UNKNOWN")
             fall_detected = posture_data.get("fall_detected", False)
 
             alerts = self.alert.process(
@@ -168,18 +203,18 @@ class PPEPipeline:
 
             all_alerts.extend(alerts)
 
-        # Draw Worker IDs + Risk
+        # Draw Worker Boxes — expand to full body for display
         for w in tracked_workers:
             wid = w["worker_id"]
-            x1,y1,x2,y2 = w["bbox"]
+            x1,y1,x2,y2 = self._expand_to_body(w["bbox"], frame.shape)
             posture = worker_posture.get(wid, {})
             risk = posture.get("risk_level", "UNKNOWN")
             color = RISK_COLORS[risk]
 
-            cv2.rectangle(frame, (x1,y1), (x2,y2), (255,165,0), 2)
-            cv2.putText(frame, wid, (x1, y1-10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,165,0), 2)
-            cv2.putText(frame, f"Risk:{risk}", (x1, y2+20),
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 165, 0), 2)
+            cv2.putText(frame, wid, (x1, y1 - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 165, 0), 2)
+            cv2.putText(frame, f"Risk:{risk}", (x1, y2 + 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
         # Metrics
@@ -195,11 +230,11 @@ class PPEPipeline:
         }
 
         cv2.putText(frame, f"FPS: {fps:.1f}", (20, 40),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(frame, f"Workers: {len(tracked_workers)}", (20, 70),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(frame, f"Critical Violations: {self.violation_count}", (20, 100),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
         return frame, all_alerts, metrics
 
