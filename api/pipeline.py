@@ -51,6 +51,7 @@ class PPEPipeline:
 
         log.info("Pipeline ready")
 
+    #Worker specific posture analyzer
     def _get_worker_analyzer(self, worker_id):
         if worker_id not in self.worker_analyzers:
             self.worker_analyzers[worker_id] = PostureAnalyzer()

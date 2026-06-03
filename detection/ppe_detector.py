@@ -17,6 +17,7 @@ COLORS = {
     "other": (255, 255, 0),
 }
 
+# Determines the box color based on detection type
 def get_color(class_name):
     if class_name in CRITICAL_CLASSES: return COLORS["critical"]
     if class_name in VIOLATION_CLASSES: return COLORS["violation"]

@@ -34,10 +34,10 @@ class WorkerTracker:
     Matches detections to existing tracks using Euclidean distance between centers.
     """
     def __init__(self):
-        self.tracks     = {}    
-        self.next_id    = 1
-        self.max_lost   = track_config["max_age"]
-        self.max_dist   = 120    # max pixel distance to match same person
+        self.tracks = {}    
+        self.next_id = 1
+        self.max_lost = track_config["max_age"]
+        self.max_dist = 120    # max pixel distance to match same person
         log.info("Centroid tracker initialized")
 
     def update(self, detections):
