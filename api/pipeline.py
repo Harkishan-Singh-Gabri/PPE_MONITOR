@@ -14,17 +14,17 @@ from tracking.tracker import WorkerTracker
 from alerts.alert_engine import AlertEngine
 from db.crud import log_violation, log_alert, update_worker
 
-config = load_config()
+config       = load_config()
 pipeline_cfg = config["pipeline"]
-YOLO_SKIP = pipeline_cfg["yolo_frame_skip"]
-POSE_SKIP = pipeline_cfg["pose_frame_skip"]
+YOLO_SKIP    = pipeline_cfg["yolo_frame_skip"]
+POSE_SKIP    = pipeline_cfg["pose_frame_skip"]
 
 WORKER_PROXY_CLASSES = ["Person", "Hardhat", "NO-Hardhat"]
 
 RISK_COLORS = {
-    "LOW": (0, 255, 0),
-    "MEDIUM": (0, 165, 255),
-    "HIGH": (0, 0, 255),
+    "LOW":     (0, 255, 0),
+    "MEDIUM":  (0, 165, 255),
+    "HIGH":    (0, 0, 255),
     "UNKNOWN": (128, 128, 128),
 }
 
@@ -51,7 +51,6 @@ class PPEPipeline:
 
         log.info("Pipeline ready")
 
-    #Worker specific posture analyzer
     def _get_worker_analyzer(self, worker_id):
         if worker_id not in self.worker_analyzers:
             self.worker_analyzers[worker_id] = PostureAnalyzer()
@@ -62,30 +61,26 @@ class PPEPipeline:
         det_cx = (x1 + x2) / 2
         det_cy = (y1 + y2) / 2
 
-        nearest_id = "UNKNOWN"
+        nearest_id   = "UNKNOWN"
         nearest_dist = float("inf")
 
         for w in tracked_workers:
             wx1, wy1, wx2, wy2 = w["bbox"]
-            wcx = (wx1 + wx2) / 2
-            wcy = (wy1 + wy2) / 2
+            wcx  = (wx1 + wx2) / 2
+            wcy  = (wy1 + wy2) / 2
             dist = np.sqrt((det_cx - wcx)**2 + (det_cy - wcy)**2)
             if dist < nearest_dist:
                 nearest_dist = dist
-                nearest_id = w["worker_id"]
+                nearest_id   = w["worker_id"]
 
         return nearest_id
 
     def _expand_bbox(self, bbox, frame_shape, scale=2.0):
-        """
-        Expand a small helmet bbox by scale factor around its center.
-        Bigger box = better IoU overlap across frames = stable IDs.
-        """
         x1, y1, x2, y2 = bbox
         cx = (x1 + x2) / 2
         cy = (y1 + y2) / 2
-        w = (x2 - x1) * scale
-        h = (y2 - y1) * scale
+        w  = (x2 - x1) * scale
+        h  = (y2 - y1) * scale
         return (
             max(0, int(cx - w / 2)),
             max(0, int(cy - h / 2)),
@@ -94,18 +89,14 @@ class PPEPipeline:
         )
 
     def _expand_to_body(self, bbox, frame_shape):
-        """
-        Expand head/helmet bbox to approximate full body.
-        Extends downward by 3.5x head height for display.
-        """
         x1, y1, x2, y2 = bbox
-        h = y2 - y1
+        h       = y2 - y1
         body_y2 = min(y2 + int(h * 3.5), frame_shape[0])
         return x1, y1, x2, body_y2
 
     def _save_snapshot(self, frame, worker_id, violation_type):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        path = f"reports/{worker_id}_{violation_type}_{timestamp}.jpg"
+        path      = f"reports/{worker_id}_{violation_type}_{timestamp}.jpg"
         cv2.imwrite(path, frame)
         return path
 
@@ -123,7 +114,7 @@ class PPEPipeline:
             detections = self.last_detections
             latency_ms = 0
 
-        # expand proxy bboxes before tracking — improves IoU matching
+        # expand proxy bboxes before tracking
         proxy = [d for d in detections if d["class"] in WORKER_PROXY_CLASSES]
         expanded_proxy = []
         for d in proxy:
@@ -131,7 +122,7 @@ class PPEPipeline:
             expanded["bbox"] = self._expand_bbox(d["bbox"], frame.shape, scale=2.0)
             expanded_proxy.append(expanded)
 
-        # Worker Tracking — every frame with expanded boxes
+        # Worker Tracking — every frame
         tracked_workers = self.tracker.update(expanded_proxy)
 
         for w in tracked_workers:
@@ -139,8 +130,8 @@ class PPEPipeline:
 
         # Pose Estimation
         if self.frame_count % POSE_SKIP == 0:
-            frame, all_persons = self.pose.estimate(frame)
-            self.last_persons = all_persons
+            frame, all_persons    = self.pose.estimate(frame)
+            self.last_persons     = all_persons
 
             worker_posture = {}
             for i, landmarks in enumerate(all_persons):
@@ -149,9 +140,9 @@ class PPEPipeline:
                     analyzer = self._get_worker_analyzer(wid)
                     risk_level, risk_score, angles, fall_detected = analyzer.analyze(landmarks)
                     worker_posture[wid] = {
-                        "risk_level": risk_level,
-                        "risk_score": risk_score,
-                        "angles": angles,
+                        "risk_level":    risk_level,
+                        "risk_score":    risk_score,
+                        "angles":        angles,
                         "fall_detected": fall_detected,
                     }
             self.last_worker_posture = worker_posture
@@ -176,12 +167,12 @@ class PPEPipeline:
             fall_detected = posture_data.get("fall_detected", False)
 
             alerts = self.alert.process(
-                worker_id = wid,
-                detections = confirmed_detections,
-                risk_level = risk_level,
+                worker_id     = wid,
+                detections    = confirmed_detections,
+                risk_level    = risk_level,
                 fall_detected = fall_detected,
-                angles = posture_data.get("angles", {}),
-                frame = frame,
+                angles        = posture_data.get("angles", {}),
+                frame         = frame,
             )
 
             for a in alerts:
@@ -192,11 +183,11 @@ class PPEPipeline:
                     )
                     self._async_db_write(
                         log_violation,
-                        worker_id = wid,
+                        worker_id      = wid,
                         violation_type = a["violation_type"],
-                        severity = a["severity"],
-                        zone = "general",
-                        snapshot_path = snapshot,
+                        severity       = a["severity"],
+                        zone           = "general",
+                        snapshot_path  = snapshot,
                     )
                     if a["violation_type"] == "fall":
                         self.fall_count += 1
@@ -204,13 +195,13 @@ class PPEPipeline:
 
             all_alerts.extend(alerts)
 
-        # Draw Worker Boxes — expand to full body for display
+        # Draw Worker Boxes
         for w in tracked_workers:
-            wid = w["worker_id"]
+            wid          = w["worker_id"]
             x1,y1,x2,y2 = self._expand_to_body(w["bbox"], frame.shape)
-            posture = worker_posture.get(wid, {})
-            risk = posture.get("risk_level", "UNKNOWN")
-            color = RISK_COLORS[risk]
+            posture      = worker_posture.get(wid, {})
+            risk         = posture.get("risk_level", "UNKNOWN")
+            color        = RISK_COLORS[risk]
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 165, 0), 2)
             cv2.putText(frame, wid, (x1, y1 - 10),
@@ -222,20 +213,30 @@ class PPEPipeline:
         self.frame_count += 1
         fps = self.frame_count / (time.time() - self.start_time)
 
+        # get real measured response time
+        avg_response = self.vtracker.avg_response_ms()
+        min_response = self.vtracker.min_response_ms()
+
         metrics = {
-            "fps": round(fps, 1),
-            "latency_ms": round(latency_ms, 1),
-            "active_workers": len(tracked_workers),
+            "fps":              round(fps, 1),
+            "latency_ms":       round(latency_ms, 1),
+            "active_workers":   len(tracked_workers),
             "violations_today": self.violation_count,
-            "falls_detected": self.fall_count,
+            "falls_detected":   self.fall_count,
+            "avg_response_ms":  avg_response,
+            "min_response_ms":  min_response,
         }
 
-        cv2.putText(frame, f"FPS: {fps:.1f}", (20, 40),
+        # overlay
+        cv2.putText(frame, f"FPS: {fps:.1f}",                             (20, 40),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
-        cv2.putText(frame, f"Workers: {len(tracked_workers)}", (20, 70),
+        cv2.putText(frame, f"Workers: {len(tracked_workers)}",             (20, 70),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
         cv2.putText(frame, f"Critical Violations: {self.violation_count}", (20, 100),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        if avg_response > 0:
+            cv2.putText(frame, f"Avg Alert Response: {avg_response}ms",    (20, 130),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
         return frame, all_alerts, metrics
 
@@ -255,6 +256,12 @@ class PPEPipeline:
             cv2.imshow("PPE Monitor", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
+
+        # log final stats on exit
+        log.info(f"Session complete | "
+                 f"Avg alert response: {self.vtracker.avg_response_ms()}ms | "
+                 f"Min: {self.vtracker.min_response_ms()}ms | "
+                 f"Total violations: {self.violation_count}")
 
         self.stream.release()
 

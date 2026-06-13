@@ -10,7 +10,7 @@ camera:
   resolution:
   - 1280
   - 720
-  source: test_videos
+  source: C:\Users\HARKIS~1\AppData\Local\Temp\tmpy5hndpoc.mp4
 database:
   echo: false
   pool_size: 5
