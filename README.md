@@ -1,4 +1,4 @@
-# SafeGuard — AI-Based PPE & Posture Monitoring System
+# VigilAI — AI-Based PPE & Posture Monitoring System
 
 > Real-time workplace safety monitoring using computer vision and generative AI. Detects PPE violations, tracks workers, validates fall incidents, and provides an intelligent safety chatbot — all from a live camera feed.
 
@@ -23,7 +23,7 @@
 
 ## Overview
 
-SafeGuard is a modular, production-grade safety monitoring system for construction and industrial environments. It processes live video feeds frame-by-frame through a multi-stage AI pipeline — detecting PPE violations, tracking individual workers with persistent IDs, analyzing posture risk, and validating fall incidents using a vision-language model.
+VigilAI is a modular, production-grade safety monitoring system for construction and industrial environments. It processes live video feeds frame-by-frame through a multi-stage AI pipeline — detecting PPE violations, tracking individual workers with persistent IDs, analyzing posture risk, and validating fall incidents using a vision-language model.
 
 All events are logged to a PostgreSQL database and visualized through a 5-page Streamlit dashboard with an embedded AI safety chatbot.
 
